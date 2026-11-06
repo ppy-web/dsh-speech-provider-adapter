@@ -21,7 +21,8 @@ export function createProvider(store, transport = fetch) {
       return { name: profile?.name ?? 'Speech providers', ready, formats: ['wav', 'mp3'], maxTextLength: profile ? Math.min(profile.maxTextLength, profile.protocol === 'openai' ? 4096 : profile.protocol === 'minimax' ? 9999 : 10000) : 1000,
         ...(!ready ? { unavailableReason: 'external-provider-not-ready' } : {}), models,
         ...(profile?.selection.model ? { selection: profile.selection, modelName: models.find(model => model.id === profile.selection.model)?.name,
-          voiceName: profile.voices.find(voice => voice.id === profile.selection.voice)?.name } : {}), configurationId: profile?.id, managementPath: ROOT, managementBundle: 'dsh-speech-provider-adapter' }
+          voiceName: profile.voices.find(voice => voice.id === profile.selection.voice)?.name } : {}), configurationId: profile?.id,
+        configurations: store.state.profiles.map(({ id, name }) => ({ id, name })), managementPath: ROOT, managementBundle: 'dsh-speech-provider-adapter' }
     },
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener) },
     notify() { for (const listener of listeners) listener() },
@@ -30,6 +31,10 @@ export function createProvider(store, transport = fetch) {
       if (!profile) throw new TtsProviderError('external-provider-unavailable', undefined, 409)
       const chosen = validateSelection(profile, selection)
       await store.save({ ...store.state, profiles: store.state.profiles.map(item => item.id === profile.id ? { ...item, selection: chosen } : item) }, store.revision, signal)
+    },
+    async selectConfiguration(configurationId, { signal }) {
+      if (!store.state.profiles.some(item => item.id === configurationId)) throw new TtsProviderError('external-selection-invalid', undefined, 400)
+      await store.save({ ...store.state, activeId: configurationId }, store.revision, signal)
     },
     synthesize(request) { return synthesize(store.active(), request, transport) },
     streamPcm(request) { return streamPcm(store.active(), request, transport) },

@@ -175,6 +175,28 @@ test('registered provider persists model and voice through the public configure 
   } finally { off(); offStore() }
 }))
 
+test('provider configuration switching persists the active profile without changing credentials or model selections', async () => temporary(async store => {
+  const first = profile('senseaudio'), second = profile('openai')
+  await store.save({ profiles: [first, second], activeId: first.id, takeoverEnabled: true }, 0)
+  const provider = createProvider(store)
+  const initial = JSON.stringify(store.state.profiles)
+  assert.deepEqual(provider.getSnapshot().configurations, [first, second].map(({ id, name }) => ({ id, name })))
+  await provider.selectConfiguration(second.id, { signal: new AbortController().signal })
+  assert.equal(store.active().id, second.id)
+  assert.equal(provider.getSnapshot().configurationId, second.id)
+  assert.equal((await new AdapterStore(store.path).load()).active().id, second.id)
+  assert.equal(JSON.stringify(store.state.profiles), initial)
+  await assert.rejects(provider.selectConfiguration('missing', { signal: new AbortController().signal }), { code: 'external-selection-invalid' })
+  store.canWrite = () => false
+  await assert.rejects(provider.selectConfiguration(first.id, { signal: new AbortController().signal }), { code: 'settings-read-only' })
+  assert.equal(store.active().id, second.id)
+  store.canWrite = () => true
+  const controller = new AbortController()
+  controller.abort()
+  await assert.rejects(provider.selectConfiguration(first.id, { signal: controller.signal }), { name: 'AbortError' })
+  assert.equal(store.active().id, second.id)
+}))
+
 test('management routes enforce same origin, mask secrets, reject stale writes and release takeover on disable', async () => temporary(async (_store, dir) => {
   const routes = new Map(), cleanup = []
   let registered = null
