@@ -3,7 +3,7 @@
 This is an independent DSH Web plugin, `dsh-speech-provider-adapter`.
 
 - `index.mjs` owns service registration and same-origin management routes.
-- `protocols.mjs` owns SenseAudio, OpenAI-compatible Speech, and MiniMax adapters.
+- `protocols.mjs` owns SenseAudio, OpenAI-compatible Speech, MiniMax, SiliconFlow, ElevenLabs, and Fish Audio adapters. Keep each provider's auth, PCM sample rate, endpoint versions, and model/voice catalog meanings explicit.
 - `store.mjs` owns profile-local persistence, revisions, catalog validation, and key masking.
 - `client.js` mounts `ui/` inside the host's `plugins.bundle.config` settings slot.
 - `ui/components.js` owns native DOM tabs and searchable choice popovers. shadcn/ui is a design reference only; keep the page in plain HTML/CSS/JavaScript without shadcn, Tailwind, or framework dependencies and without a frontend build step.

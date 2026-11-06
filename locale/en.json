@@ -55,7 +55,7 @@
   "tested": "Catalog connection succeeded.",
   "partial": "Some catalog queries failed; existing lists were retained:",
   "failed": "Operation failed:",
-  "protocolHint": "Changing protocol only changes the API format. URL, key, model, and voice must match your service.",
+  "protocolHint": "Changing protocol only changes the API format. Match the URL, key, model and voice to the service. Adding a preset fills its defaults.",
   "adapter-config-invalid": "Invalid configuration. Check model and voice IDs and your selection.",
   "adapter-config-changed": "Configuration changed. Discard your draft and reload.",
   "api-key-not-configured": "Enter an API Key.",
@@ -110,5 +110,9 @@
   "advancedHint": "Adjust synthesis behavior and limits per request.",
   "editorSections": "Provider settings sections",
   "showKey": "Show",
-  "hideKey": "Hide"
+  "hideKey": "Hide",
+  "external-catalog-limit": "The provider catalog exceeds the read limit. Add the required models or voices manually.",
+  "external-quota-exceeded": "Provider credit or quota is insufficient. Check your provider account.",
+  "external-option-unsupported": "This protocol does not support the requested speech option. Clear the speech instruction and retry.",
+  "fishVoiceHint": "Fish Audio voices are reference IDs. Refresh your workspace voices, or add an available reference voice ID in Manage catalogs."
 }

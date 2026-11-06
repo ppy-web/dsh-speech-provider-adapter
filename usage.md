@@ -38,6 +38,22 @@ dsh plugin --profile web add "link:E:/personal/Dsh/dsh-speech-provider-adapter"
 
 供应商适配器 依赖 `speechSynthesis`、`webServer`、`settings` 服务。仅通过公开入口 `dsh-xiaomi-tts/host-api` 使用类型契约和错误类，不读取音色工坊的内部实现或构建目录。旧 npm 版 音色工坊 若没有本次目录与选择接口，需先安装当前构建。
 
+## 服务商预设
+
+“新增”中包含 SenseAudio、OpenAI compatible、MiniMax、SiliconFlow、ElevenLabs 和 Fish Audio。预设只建立草稿，不会开启接管、写入密钥或调用付费合成。以下新增预设按官方接口文档整理于 2026-11-06，未使用真实账号实测；模型、音色与账号权限以供应商当前服务为准。
+
+| 服务商 | 协议与默认配置 | 使用差异与官方参考 |
+| --- | --- | --- |
+| 硅基流动 SiliconFlow | OpenAI 风格的专用适配；CosyVoice2 0.5B，8 个系统音色 | 音色 ID 带模型前缀并限定适用模型；PCM 显式请求 24000 Hz，HTTP 流式发送 stream；CosyVoice2 指令拼入 input 的 endofprompt 前缀。[合成接口](https://docs.siliconflow.cn/docs/api/audio-speech-post)、[音色与格式](https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech) |
+| ElevenLabs | 原生协议；Multilingual v2 / Flash v2.5，George 示例音色 | 使用 xi-api-key；合成及 HTTP 流式指定 pcm_24000 或 MP3；模型与账号音色分别查询，音色读取跟随 v2 分页。[合成](https://elevenlabs.io/docs/api-reference/text-to-speech/convert)、[流式](https://elevenlabs.io/docs/api-reference/text-to-speech/stream)、[音色目录](https://elevenlabs.io/docs/api-reference/voices/search) |
+| Fish Audio | 原生协议；S2.1 Pro、S2.1 Pro Free、S2 Pro、S1，音色初始为空 | 合成模型放在 model 请求头，音色对应 reference_id。刷新读取自己工作区的音色；公共音色或其他可用参考 ID 可手动加入。不会将声音模型目录误当合成模型，也不填写虚构 ID。[合成](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech)、[音色目录](https://docs.fish.audio/api-reference/endpoint/model/list-models) |
+
+硅基流动的音色目录以预设和手动补充为主，模型刷新筛选 TTS 条目；新增模型时请同步添加该模型实际支持的音色 ID。ElevenLabs 和 Fish Audio 首版不把独立的自由文本语音指令参数传给上游，显式传入会拒绝，避免静默忽略。现有三种协议的配置保持原样。
+
+Fish Audio 新建配置需要先填写密钥，再刷新工作区音色或手动添加参考音色 ID。没有目录时可保存配置，但不会就绪；刷新只为原本为空的模型、音色选择补默认值，已有选择保持不变。若工作区音色为空，查询成功仍不表示已具备可合成的音色。
+
+ElevenLabs 音色与 Fish Audio 工作区音色按分页读取，去重后最多 2000 项；目录过大、分页异常或权限不足时返回稳定错误，已有目录不会被覆盖。Fish Audio 的合成模型列表来自文档预设，测试连接必须有真实目录请求成功，静态预设不作为连接成功依据。
+
 ## 配置与协议
 
 提供的 SenseAudio 接口参考位于 [doc/sense.md](doc/sense.md)。
@@ -70,13 +86,13 @@ Base URL 支持服务根地址、已有 `/v1` 和反向代理前缀，不接受 
 
 ## 验证与扩展
 
-在本插件目录运行 `pnpm test`，行为测试覆盖三种协议、PCM/WAV、取消、目录、密钥保留、版本冲突、同源限制、接管注册和选择保存；音色工坊的通用注册与选择路由测试留在音色工坊仓库。真实账号的权限、音质和费用需使用你的服务配置自行验证；不要将密钥写入仓库。
+在本插件目录运行 `pnpm test`，行为测试覆盖原有及新增协议、PCM/WAV、取消、目录、密钥保留、版本冲突、同源限制、接管注册和选择保存；音色工坊的通用注册与选择路由测试留在音色工坊仓库。真实账号的权限、音质和费用需使用你的服务配置自行验证；不要将密钥写入仓库。
 
 协议实现集中于 `protocols.mjs`，持久化和目录校验位于 `store.mjs`，宿主注册与管理路由位于 `index.mjs`，管理页在 `ui/`。替换或扩展上游时保留请求取消、音频格式、大小上限及稳定错误约定。主插件接口详见音色工坊仓库的 `open-api.md`；本地相邻目录为 `../dsh-plugin-xiaomi-mimo-tts/open-api.md`。
 
 ## English
 
-This independent DSH Web plugin manages multiple SenseAudio, OpenAI-compatible Speech, and MiniMax profiles. Open its configuration in the DSH plugin manager, configure a profile, choose it as active, enable takeover, and save. The page supports English. 音色工坊 reuses its existing model/voice/instruction controls; selections remain drafts until Save and are persisted by 供应商适配器. Disable takeover to restore 音色工坊's built-in configuration.
+This independent DSH Web plugin manages SenseAudio, OpenAI-compatible Speech, MiniMax, SiliconFlow, ElevenLabs and Fish Audio profiles. Presets are documentation-based examples, not verified provider accounts. Fish Audio starts without a voice ID: refresh workspace voices or add a reference ID manually. Open its configuration in the DSH plugin manager, configure a profile, choose it as active, enable takeover, and save. The page supports English. 音色工坊 reuses its existing model/voice/instruction controls; selections remain drafts until Save and are persisted by 供应商适配器. Disable takeover to restore 音色工坊's built-in configuration.
 
 Settings use four tabs: Connection, Model and voice, Manage catalogs, and Advanced settings. Model and voice pickers support name/ID search; changing tabs retains drafts. The save bar remains available while scrolling, and the actual takeover state is shown separately from unsaved changes. Narrow settings surfaces use a provider dropdown. Catalogs support separate model/voice views, name or ID search, and Show more for long lists; capabilities and model scope expand on demand. Streaming, text limits and deletion are under Advanced settings.
 

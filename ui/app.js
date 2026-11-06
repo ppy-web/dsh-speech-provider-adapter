@@ -1,7 +1,8 @@
 import { node, tabs, combobox, icon } from './components.js'
 
 const root = new URL('./', import.meta.url)
-const protocols = [{ id: 'senseaudio', name: 'SenseAudio' }, { id: 'openai', name: 'OpenAI compatible' }, { id: 'minimax', name: 'MiniMax' }]
+const protocols = [{ id: 'senseaudio', name: 'SenseAudio' }, { id: 'openai', name: 'OpenAI compatible' }, { id: 'minimax', name: 'MiniMax' },
+  { id: 'siliconflow', name: 'SiliconFlow' }, { id: 'elevenlabs', name: 'ElevenLabs' }, { id: 'fish', name: 'Fish Audio' }]
 
 /** Mount in the host settings surface; disposal aborts requests and removes window listeners. */
 export function mountManager(surface) {
@@ -116,7 +117,8 @@ export function mountManager(surface) {
     $('profiles').scrollTop = scrollTop
   }
   function modelSupports(profile, model) {
-    const supported = profile.protocol === 'openai' ? /^gpt-4o-mini-tts(?:-|$)/u.test(model.id) : profile.protocol === 'minimax' && /^speech-(?:2\.[68]|0[12])-/u.test(model.id)
+    const supported = profile.protocol === 'openai' ? /^gpt-4o-mini-tts(?:-|$)/u.test(model.id)
+      : profile.protocol === 'siliconflow' ? /CosyVoice2/iu.test(model.id) : profile.protocol === 'minimax' && /^speech-(?:2\.[68]|0[12])-/u.test(model.id)
     return model.speechInstruction ?? supported
   }
   function instructionOptions(profile, model) {
@@ -143,7 +145,7 @@ export function mountManager(surface) {
     if (supported) fields.append(field(t('instruction'), options ? select(profile.selection.speechInstruction ?? '', options, value => { profile.selection.speechInstruction = value })
       : node('textarea', { value: profile.selection.speechInstruction ?? '', maxLength: 4096, disabled: busy, 'data-focus-key': 'speech-instruction', oninput: event => { profile.selection.speechInstruction = event.target.value; changed() } }), '', true))
     else fields.append(node('p', { class: 'hint selection-note' }, t('unsupported')))
-    if (!profile.models.length || !compatibleVoices(profile).length) fields.append(node('p', { class: 'hint selection-note' }, t('missingCatalog')))
+    if (!profile.models.length || !compatibleVoices(profile).length) fields.append(node('p', { class: 'hint selection-note' }, t(profile.protocol === 'fish' && !profile.voices.length ? 'fishVoiceHint' : 'missingCatalog')))
     return node('section', { class: 'card form-section', id: 'selection-fields' },
       sectionHeading(t('selection'), t('selectionHint'), [button(t('refresh'), () => query(profile, true), { 'data-focus-key': 'refresh-catalog' })]), fields)
   }
@@ -217,6 +219,9 @@ export function mountManager(surface) {
           profile[kind] = [...map.values()]
         }
         if (result.models?.length || result.voices?.length) changed()
+        // New providers may start with an empty voice catalog. Fill only absent choices.
+        if (!profile.selection.model) profile.selection.model = profile.models[0]?.id ?? ''
+        if (!profile.selection.voice) profile.selection.voice = compatibleVoices(profile)[0]?.id ?? ''
       }
       message(result.errors.length ? `${t('partial')} ${result.errors.map(item => `${t(item.kind)}: ${t(item.code)}`).join('; ')}` : t(refresh ? 'refreshed' : 'tested'), !result.connected)
     }, refresh ? 'refreshing' : 'testing')
@@ -235,7 +240,7 @@ export function mountManager(surface) {
     return node('section', { class: 'card form-section' }, sectionHeading(t('connection'), t('connectionHint')),
       node('div', { class: 'field-group fields card-content' },
         field(t('name'), input(profile.name, value => { profile.name = value; $('profile-name').textContent = value || t('unnamed'); renderProfiles() }, { maxLength: 120 })),
-        field(t('protocol'), select(profile.protocol, protocols, id => { profile.protocol = id; profile.selection.speechInstruction = '' })),
+        field(t('protocol'), select(profile.protocol, protocols, id => { profile.protocol = id; profile.selection.speechInstruction = '' }), t('protocolHint')),
         field(t('baseURL'), input(profile.baseURL, value => { profile.baseURL = value }, { type: 'url', maxLength: 2048, spellcheck: false }), t('baseHint'), true), keyField),
       node('div', { class: 'card-footer' }, node('p', { class: 'field-description' }, t('testHint')), button(t('test'), () => query(profile, false), { 'data-focus-key': 'test-connection' })))
   }

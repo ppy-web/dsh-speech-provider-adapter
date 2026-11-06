@@ -131,7 +131,7 @@ export async function apply(ctx, config) {
         const profile = normalized.profiles[0]
         if (!profile.apiKey) throw new TtsProviderError('api-key-not-configured', undefined, 409)
         const result = await discover(profile, fetch, controller.signal)
-        reply(res, 200, { ...result, connected: result.errors.length < (profile.protocol === 'openai' ? 1 : 2) })
+        reply(res, 200, result)
       } catch (error) { reply(res, error instanceof TtsProviderError ? error.status : controller.signal.aborted ? 504 : 502,
         { error: error instanceof TtsProviderError ? error.code : controller.signal.aborted ? 'tts-timeout' : 'external-upstream-failed' }) }
       finally { clearTimeout(timer); res.off('close', cancel); requests.delete(controller) }

@@ -55,7 +55,7 @@
   "tested": "目录接口连接成功。",
   "partial": "部分目录查询失败，已保留原列表：",
   "failed": "操作失败：",
-  "protocolHint": "切换协议只更改接口格式；地址、密钥、模型和音色仍需与目标服务匹配。",
+  "protocolHint": "切换协议只更改接口格式；地址、密钥、模型和音色需与目标服务匹配。新增预设会自动填写对应默认值。",
   "adapter-config-invalid": "配置无效，请检查模型、音色 ID 和当前选择。",
   "adapter-config-changed": "配置已变更，请放弃草稿后重新读取。",
   "api-key-not-configured": "请填写 API Key。",
@@ -110,5 +110,9 @@
   "advancedHint": "调整合成方式及单次请求限制。",
   "editorSections": "供应商设置分区",
   "showKey": "显示",
-  "hideKey": "隐藏"
+  "hideKey": "隐藏",
+  "external-catalog-limit": "上游目录超过读取上限，请手动补充所需模型或音色。",
+  "external-quota-exceeded": "服务余额或额度不足，请在供应商平台检查。",
+  "external-option-unsupported": "当前协议不支持此语音参数，请清空语音指令后重试。",
+  "fishVoiceHint": "Fish Audio 的音色为参考音色 ID。请刷新自己的工作区音色，或在“目录管理”中添加可用的参考音色 ID。"
 }
