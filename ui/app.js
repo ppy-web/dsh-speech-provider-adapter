@@ -1,4 +1,5 @@
 import { node, tabs, combobox, icon } from './components.js'
+import { createManagerApi } from './api.js'
 
 const root = new URL('./', import.meta.url)
 const protocols = [{ id: 'senseaudio', name: 'SenseAudio（商汤）' }, { id: 'openai', name: 'OpenAI compatible（OpenAI 兼容）' }, { id: 'minimax', name: 'MiniMax（稀宇科技）' },
@@ -10,6 +11,7 @@ const manualCatalog = profile => ['aliyun', 'tencent'].includes(profile.protocol
 export function mountManager(surface) {
   const controller = new AbortController()
   const { signal } = controller
+  const api = createManagerApi(root, signal)
   let language = localStorage.getItem('dsh-speech-adapter-language') ?? (navigator.language.startsWith('zh') ? 'zh' : 'en')
   if (!['zh', 'en'].includes(language)) language = 'en'
   let words = {}, state, accepted, selected = '', busy = true, busyKind = 'loading', dirty = false, deleteId = null
@@ -45,14 +47,6 @@ export function mountManager(surface) {
       : accepted.takeoverActive ? t(accepted.ready ? 'servingProvider' : 'notReadyProvider', { name: active?.name ?? '' }) : t('inactive')
   }
   function changed() { dirty = true; toolbar() }
-  async function api(action, body) {
-    const response = await fetch(new URL(`api/${action}`, root), { method: body === undefined ? 'GET' : 'POST',
-      headers: body === undefined ? {} : { 'content-type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), cache: 'no-store', signal })
-    const result = await response.json()
-    signal.throwIfAborted()
-    if (!response.ok) throw new Error(result.error ?? 'external-upstream-failed')
-    return result
-  }
   async function action(work, kind = 'working') {
     if (busy || !state) return
     busy = true; busyKind = kind; message(); render()

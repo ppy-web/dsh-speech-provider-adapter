@@ -6,6 +6,7 @@ This is an independent DSH Web plugin, `dsh-speech-provider-adapter`.
 - `protocols.mjs` dispatches SenseAudio, OpenAI-compatible Speech, MiniMax, SiliconFlow, ElevenLabs, Fish Audio, Alibaba Cloud Bailian, and Tencent Cloud adapters. `cloud-providers.mjs` handles Bailian SSE and Tencent TC3 signing. Keep each provider's auth, PCM sample rate, endpoint versions, and model/voice catalog meanings explicit.
 - `store.mjs` owns profile-local persistence, revisions, catalog validation, and key masking.
 - `client.js` mounts `ui/` inside the host's `plugins.bundle.config` settings slot.
+- `ui/api.js` is the shared JSON management transport: browser writes carry the same-origin `Origin`, while Desktop forwards validated requests without origin metadata, so writes also send `x-dsh-speech-adapter: 1` and the host accepts origin-less writes only with that header.
 - `ui/components.js` owns native DOM tabs and searchable choice popovers. shadcn/ui is a design reference only; keep the page in plain HTML/CSS/JavaScript without shadcn, Tailwind, or framework dependencies and without a frontend build step.
 - `locale/` contains Chinese and English UI strings; `usage.md` documents configuration and installation.
 - `doc/sense.md` is the supplied protocol reference; `test/` contains adapter behavior tests.

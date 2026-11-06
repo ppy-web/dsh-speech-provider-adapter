@@ -6,9 +6,10 @@ import { join } from 'node:path'
 import { createServer } from 'node:http'
 import { once } from 'node:events'
 import { AdapterStore, normalizeConfig } from '../store.mjs'
-import { createProvider, apply, ROOT } from '../index.mjs'
+import { createProvider, apply, sameOrigin, ROOT } from '../index.mjs'
 import { preset, endpoint, synthesize, streamPcm, discover, modelFeatures } from '../protocols.mjs'
 import { TtsProviderError } from '../host-api.mjs'
+import { createManagerApi } from '../ui/api.js'
 const pcm = Buffer.from([1, 0, 2, 0, 3, 0, 4, 0])
 const json = value => new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } })
 const profile = protocol => ({ ...preset(protocol), id: protocol, apiKey: 'private-test-key' })
@@ -18,6 +19,37 @@ async function temporary(work) {
   const dir = await mkdtemp(join(tmpdir(), 'dsh-speech-adapter-'))
   try { await work(new AdapterStore(join(dir, 'providers.json')), dir) } finally { await rm(dir, { recursive: true, force: true }) }
 }
+
+test('sameOrigin accepts desktop-forwarded writes only with the management header', () => {
+  const req = (headers = {}) => ({ headers: { host: '127.0.0.1:3080', ...headers } })
+  assert.equal(sameOrigin(req(), false), true)
+  assert.equal(sameOrigin(req(), true), false)
+  assert.equal(sameOrigin(req({ 'x-dsh-speech-adapter': '1' }), true), true)
+  assert.equal(sameOrigin(req({ 'x-dsh-speech-adapter': '0' }), true), false)
+  for (const secFetchSite of ['cross-site', 'same-site', 'none']) {
+    assert.equal(sameOrigin(req({ 'x-dsh-speech-adapter': '1', 'sec-fetch-site': secFetchSite }), true), false)
+  }
+  assert.equal(sameOrigin(req({ origin: 'http://127.0.0.1:3080' }), true), true)
+  assert.equal(sameOrigin(req({ origin: 'https://foreign.test' }), true), false)
+  assert.equal(sameOrigin(req({ origin: 'dsh-app://app' }), true), false)
+})
+
+test('management transport marks only writes with the desktop-forwarding header', async () => {
+  const calls = []
+  const transport = async (url, init) => {
+    calls.push({ url: String(url), init })
+    return new Response(JSON.stringify({ ok: true }), { headers: { 'content-type': 'application/json' } })
+  }
+  const api = createManagerApi(new URL('http://127.0.0.1:3080/plugins/speech-provider-adapter/'), new AbortController().signal, transport)
+  assert.deepEqual(await api('state'), { ok: true })
+  assert.equal(calls[0].init.method, 'GET')
+  assert.equal(calls[0].init.headers['x-dsh-speech-adapter'], undefined)
+  await api('save', { revision: 1 })
+  assert.equal(calls[1].init.method, 'POST')
+  assert.equal(calls[1].init.headers['x-dsh-speech-adapter'], '1')
+  assert.equal(calls[1].init.headers['content-type'], 'application/json')
+  assert.equal(calls[1].init.body, '{"revision":1}')
+})
 
 test('adapter URL normalization supports service roots, /v1, and reverse-proxy prefixes', () => {
   assert.equal(endpoint('https://example.test', 't2a_v2'), 'https://example.test/v1/t2a_v2')
@@ -240,9 +272,15 @@ test('management routes enforce same origin, mask secrets, reject stale writes a
   const post = (body, headers = { origin }) => fetch(origin + ROOT + '/api/save', {
     method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body),
   })
+  const desktopPost = (action, body, headers = {}) => fetch(origin + ROOT + '/api/' + action, {
+    method: 'POST', headers: { 'content-type': 'application/json', 'x-dsh-speech-adapter': '1', ...headers }, body: JSON.stringify(body),
+  })
   try {
     assert.equal((await fetch(origin + ROOT)).status, 200)
+    assert.equal((await fetch(origin + ROOT + '/api.js')).status, 200)
     for (const headers of [{}, { origin: 'https://foreign.test' }, { origin, 'sec-fetch-site': 'cross-site' }]) assert.equal((await post({}, headers)).status, 403)
+    assert.equal((await desktopPost('preset', { protocol: 'openai' })).status, 200)
+    assert.equal((await desktopPost('preset', { protocol: 'openai' }, { 'sec-fetch-site': 'cross-site' })).status, 403)
     const saved = await post({ ...config(profile('senseaudio')), revision: 0 })
     assert.equal(saved.status, 200)
     const state = await saved.json()

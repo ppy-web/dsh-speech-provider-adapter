@@ -37,7 +37,7 @@ dsh plugin --profile web add "link:E:/personal/Dsh/dsh-plugin-xiaomi-mimo-tts"
 dsh plugin --profile web add "link:E:/personal/Dsh/dsh-speech-provider-adapter"
 ```
 
-将路径替换为实际路径；适配器没有额外构建步骤。用于本地源码开发时，在适配器目录执行 `pnpm install`，开发依赖会链接相邻的 `../dsh-plugin-xiaomi-mimo-tts`；其他目录结构请调整该开发依赖链接。供应商适配器 的 `cordis.patch.yml` 声明了宿主组件；在插件管理中启用该组件，重启或按宿主提示重新加载。音色工坊 和 供应商适配器 必须在同一个宿主实例。若手动维护 profile，组件为：
+将路径替换为实际路径；适配器没有额外构建步骤。用于本地源码开发时，在适配器目录执行 `pnpm install`，开发依赖会链接相邻的 `../dsh-plugin-xiaomi-mimo-tts`；其他目录结构请调整该开发依赖链接。供应商适配器 的 `cordis.patch.yml` 声明了宿主组件；在插件管理中启用该组件，重启或按宿主提示重新加载。音色工坊 和 供应商适配器 必须在同一个宿主实例。桌面端由桌面应用内的插件管理安装并启用，不使用命令行的 `--profile desktop`；安装或更新后需完整重新加载桌面页面。若手动维护 profile，组件为：
 
 ```yaml
 - id: speech-provider-adapter
@@ -109,7 +109,7 @@ Base URL 支持服务根地址、已有 `/v1` 和反向代理前缀，不接受 
 
 供应商适配器 默认将 JSON 配置保存至当前 profile 的 `speech-provider-adapter/providers.json`，路径依据 `settings.documentPath`。可通过组件的普通 `storagePath` 配置指定其他文件；一份文件只交给一个 供应商适配器 实例使用。写入采用串行、修订检查和临时文件替换，浏览器只接收 `keyConfigured` 和适用时的 `secretIdConfigured`，不返回已保存的 API Key、SecretId 或 SecretKey。腾讯云 SecretKey 复用存储字段 `apiKey`，SecretId 使用 `secretId`；其他协议存储结构兼容。输入留空保留原值，显式清除才删除。备份此配置时按包含凭据的文件管理。
 
-所有管理端点仅供同源页面使用，写操作要求 Origin、JSON 和当前 revision；沿用宿主访问控制，部署到公网时保护整个宿主。只读 profile 拒绝保存。客户端原始异常、上游正文和密钥不会进入错误响应；上游请求不自动重试，取消和插件卸载会终止读取。刷新失败保留已有目录；不会偷偷换回内置云端供应商。
+所有管理端点仅供同源页面使用，写操作要求 JSON 和当前 revision。浏览器写请求校验 Origin；桌面壳已校验应用来源并移除 Origin 与 Sec-Fetch-Site 后再转发，因此管理页写请求额外携带专用 `x-dsh-speech-adapter: 1` 请求头，无来源且无该头的写请求仍被拒绝。沿用宿主访问控制，部署到公网时保护整个宿主。只读 profile 拒绝保存。客户端原始异常、上游正文和密钥不会进入错误响应；上游请求不自动重试，取消和插件卸载会终止读取。刷新失败保留已有目录；不会偷偷换回内置云端供应商。
 
 若另一个插件正在接管，先在该插件关闭接管。未配置密钥等情况下允许显示外部未就绪状态。目录错误、鉴权失败、限流、超时、配置冲突使用稳定错误码提示。
 
