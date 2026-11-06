@@ -20,6 +20,15 @@
 
 ## 本地安装
 
+使用 npm 预发布包时，在同一宿主实例安装匹配版本：
+
+```powershell
+dsh plugin --profile web add dsh-xiaomi-tts@5.2.0-next.0
+dsh plugin --profile web add dsh-speech-provider-adapter@0.1.0-next.0
+```
+
+以下为源码开发的本地链接方式。
+
 先在 音色工坊 仓库根目录构建，使用 Node.js 24.9+、pnpm：
 
 ```powershell

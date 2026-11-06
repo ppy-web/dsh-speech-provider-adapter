@@ -1,7 +1,6 @@
 {
   "name": "dsh-speech-provider-adapter",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0-next.0",
   "type": "module",
   "description": "供应商适配器示例插件：为音色工坊管理自定义语音供应商、模型与音色",
   "license": "MIT",
@@ -20,6 +19,7 @@
     "ui",
     "locale",
     "doc/sense.md",
+    "docs/images",
     "usage.md",
     "LICENSE",
     "README.md"
@@ -54,7 +54,7 @@
     "@deepseek-ai/schemastery": "~3.19.0",
     "@deepseek-ai/dsh-host-webserver": ">=0.2.2-0 <0.3.0-0",
     "@deepseek-ai/dsh-settings": ">=0.2.2-0 <0.3.0-0",
-    "dsh-xiaomi-tts": "*"
+    "dsh-xiaomi-tts": ">=5.2.0-next.0 <6"
   },
   "repository": {
     "type": "git",
@@ -64,5 +64,9 @@
   "bugs": {
     "url": "https://github.com/ppy-web/dsh-speech-provider-adapter/issues"
   },
-  "packageManager": "pnpm@11.22.0"
+  "packageManager": "pnpm@11.22.0",
+  "publishConfig": {
+    "access": "public",
+    "tag": "next"
+  }
 }
