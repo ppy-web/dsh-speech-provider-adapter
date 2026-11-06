@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>供应商适配器 · DSH</title>
+  <link rel="stylesheet" href="/plugins/speech-provider-adapter/style.css">
+  <script type="module" src="/plugins/speech-provider-adapter/standalone.js"></script>
+</head>
+<body>
+  <header class="top"><a href="/" class="brand">DSH <span>供应商适配器</span></a></header>
+  <main class="manager-shell">
+    <div class="manager">
+      <header class="save-bar">
+        <div class="page-heading"><h1 data-i18n="title">语音供应商</h1><span id="status" class="badge" role="status" aria-live="polite">正在读取配置…</span></div>
+        <div class="actions">
+          <select id="language" aria-label="Language"><option value="zh">中文</option><option value="en">English</option></select>
+          <button id="discard" class="quiet" data-i18n="discard" disabled>放弃更改</button>
+          <button id="save" class="primary" data-i18n="save" disabled>保存更改</button>
+        </div>
+      </header>
+      <div id="message" class="alert" role="status" aria-live="polite"></div>
+      <div class="workspace">
+        <aside class="provider-sidebar" aria-labelledby="profiles-label">
+          <div class="provider-list-card card">
+            <div class="list-heading"><h2 id="profiles-label" data-i18n="profiles">供应商配置</h2><button id="add" class="quiet" data-i18n="add" aria-expanded="false" aria-controls="templates" disabled>新增</button></div>
+            <div id="templates" class="templates" hidden><p class="field-description" data-i18n="chooseProtocol">选择接口协议</p><button type="button" data-protocol="senseaudio">SenseAudio</button><button type="button" data-protocol="openai">OpenAI compatible</button><button type="button" data-protocol="minimax">MiniMax</button></div>
+            <label class="provider-search field"><span class="sr-only" data-i18n="searchProviders">搜索供应商</span><input id="provider-search" type="search" placeholder="搜索供应商" disabled></label>
+            <label class="provider-select field"><span class="sr-only" data-i18n="editingProvider">正在编辑的供应商</span><select id="profile-select" disabled></select></label>
+            <nav id="profiles" aria-labelledby="profiles-label"></nav>
+          </div>
+          <section class="takeover-card card" aria-labelledby="takeover-label">
+            <div class="takeover-heading"><h2 id="takeover-label" data-i18n="takeover">接管语音合成</h2><input id="takeover" type="checkbox" role="switch" aria-labelledby="takeover-label" disabled></div>
+            <p id="takeover-status" role="status" aria-live="polite"></p><p class="field-description" data-i18n="takeoverHint">接管开关和当前供应商在保存后生效。</p>
+          </section>
+        </aside>
+        <section id="editor" aria-label="Provider configuration" aria-busy="true"></section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

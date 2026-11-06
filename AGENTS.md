@@ -1,0 +1,17 @@
+# 供应商适配器
+
+This is an independent DSH Web plugin, `dsh-speech-provider-adapter`.
+
+- `index.mjs` owns service registration and same-origin management routes.
+- `protocols.mjs` owns SenseAudio, OpenAI-compatible Speech, and MiniMax adapters.
+- `store.mjs` owns profile-local persistence, revisions, catalog validation, and key masking.
+- `client.js` mounts `ui/` inside the host's `plugins.bundle.config` settings slot.
+- `ui/components.js` owns native DOM tabs and searchable choice popovers. shadcn/ui is a design reference only; keep the page in plain HTML/CSS/JavaScript without shadcn, Tailwind, or framework dependencies and without a frontend build step.
+- `locale/` contains Chinese and English UI strings; `usage.md` documents configuration and installation.
+- `doc/sense.md` is the supplied protocol reference; `test/` contains adapter behavior tests.
+
+Use Node.js 24.9+ and pnpm. No compile step is required. Run `pnpm test` for protocol, persistence, lifecycle, and management-route coverage. Do not run tests or browser verification when the user has reserved verification for themselves.
+
+Use two-space indentation, single quotes, and omitted semicolons. Import only the public `dsh-xiaomi-tts/host-api` contract; do not import host plugin internals or fall back to checkout-relative source paths. The local development dependency links to the sibling 音色工坊 checkout; runtime installations must provide the updated `dsh-xiaomi-tts` peer.
+
+Keep credentials in the profile-local store and out of logs, public state, error responses, and commits. Preserve AbortSignal propagation, bounded responses, revision checks, same-origin validation, and context-scoped cleanup. Keep browser UI strings in both locales. Tests must cover observable behavior, not source spelling or presentation details.

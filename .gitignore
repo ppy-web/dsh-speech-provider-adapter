@@ -1,0 +1,11 @@
+node_modules/
+*.tgz
+coverage/
+providers.json
+.env
+.env.*
+*.log
+*.local.*
+.DS_Store
+.taste-skill/
+.agents/briefs/

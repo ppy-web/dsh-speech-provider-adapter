@@ -1,0 +1,4 @@
+- insert:
+    - id: speech-provider-adapter
+      name: dsh-speech-provider-adapter
+      config: {}

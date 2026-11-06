@@ -1,0 +1,68 @@
+{
+  "name": "dsh-speech-provider-adapter",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "供应商适配器示例插件：为音色工坊管理自定义语音供应商、模型与音色",
+  "license": "MIT",
+  "main": "index.mjs",
+  "exports": {
+    ".": "./index.mjs",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "files": [
+    "*.mjs",
+    "client.js",
+    "cordis.patch.yml",
+    "ui",
+    "locale",
+    "doc/sense.md",
+    "usage.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=24.9.0",
+    "dsh": ">=0.2.2-0 <0.3.0-0"
+  },
+  "devDependencies": {
+    "dsh-xiaomi-tts": "link:../dsh-plugin-xiaomi-mimo-tts"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-plugin-manager"
+      ],
+      "external": [
+        "react"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/schemastery": "~3.19.0",
+    "@deepseek-ai/dsh-host-webserver": ">=0.2.2-0 <0.3.0-0",
+    "@deepseek-ai/dsh-settings": ">=0.2.2-0 <0.3.0-0",
+    "dsh-xiaomi-tts": "*"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ppy-web/dsh-speech-provider-adapter.git"
+  },
+  "homepage": "https://github.com/ppy-web/dsh-speech-provider-adapter#readme",
+  "bugs": {
+    "url": "https://github.com/ppy-web/dsh-speech-provider-adapter/issues"
+  },
+  "packageManager": "pnpm@11.22.0"
+}
