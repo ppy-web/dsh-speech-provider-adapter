@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path'
 import { TtsProviderError } from './host-api.mjs'
 import { AdapterStore, catalog, normalizeConfig, validateSelection } from './store.mjs'
 import { discover, preset, streamPcm, synthesize, PROTOCOLS } from './protocols.mjs'
+import { credentialsReady } from './cloud-providers.mjs'
 
 export const name = 'speech-provider-adapter'
 export const inject = ['speechSynthesis', 'webServer', 'settings']
@@ -17,8 +18,8 @@ export function createProvider(store, transport = fetch) {
     getSnapshot() {
       const profile = store.active()
       const models = profile ? catalog(profile) : []
-      const ready = !!profile?.apiKey && models.some(model => model.id === profile.selection.model && model.voices.some(voice => voice.id === profile.selection.voice))
-      return { name: profile?.name ?? 'Speech providers', ready, formats: ['wav', 'mp3'], maxTextLength: profile ? Math.min(profile.maxTextLength, profile.protocol === 'openai' ? 4096 : profile.protocol === 'minimax' ? 9999 : 10000) : 1000,
+      const ready = credentialsReady(profile) && models.some(model => model.id === profile.selection.model && model.voices.some(voice => voice.id === profile.selection.voice))
+      return { name: profile?.name ?? 'Speech providers', ready, formats: ['wav', 'mp3'], maxTextLength: profile ? Math.min(profile.maxTextLength, profile.protocol === 'tencent' ? 150 : profile.protocol === 'openai' ? 4096 : profile.protocol === 'minimax' ? 9999 : 10000) : 1000,
         ...(!ready ? { unavailableReason: 'external-provider-not-ready' } : {}), models,
         ...(profile?.selection.model ? { selection: profile.selection, modelName: models.find(model => model.id === profile.selection.model)?.name,
           voiceName: profile.voices.find(voice => voice.id === profile.selection.voice)?.name } : {}), configurationId: profile?.id,

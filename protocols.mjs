@@ -1,8 +1,9 @@
 import { TtsProviderError } from './host-api.mjs'
+import { aliyunAudio, tencentSynthesize } from './cloud-providers.mjs'
 
 const MAX_AUDIO = 32 * 1024 * 1024
 const fail = (code, status = 502) => { throw new TtsProviderError(code, undefined, status) }
-export const PROTOCOLS = ['senseaudio', 'openai', 'minimax', 'siliconflow', 'elevenlabs', 'fish']
+export const PROTOCOLS = ['senseaudio', 'openai', 'minimax', 'siliconflow', 'elevenlabs', 'fish', 'aliyun', 'tencent']
 const BINARY_PROTOCOLS = new Set(['openai', 'siliconflow', 'elevenlabs', 'fish'])
 const FISH_MODELS = ['s2.1-pro', 's2.1-pro-free', 's2-pro', 's1']
 const emotions = ['happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised', 'calm']
@@ -10,10 +11,11 @@ const interjections = ['laughs', 'chuckle', 'coughs', 'clear-throat', 'groans', 
 
 export function modelFeatures(protocol, model) {
   const instruction = protocol === 'openai' ? /^gpt-4o-mini-tts(?:-|$)/u.test(model.id)
-    : protocol === 'siliconflow' ? /CosyVoice2/iu.test(model.id) : protocol === 'minimax' && /^speech-(?:2\.[68]|0[12])-/u.test(model.id)
+    : protocol === 'aliyun' ? /^qwen-audio-3\.[01]-tts-(?:flash|plus)$/u.test(model.id)
+      : protocol === 'siliconflow' ? /CosyVoice2/iu.test(model.id) : protocol === 'minimax' && /^speech-(?:2\.[68]|0[12])-/u.test(model.id)
   return {
-    streaming: model.streaming !== false,
-    speechInstruction: model.speechInstruction ?? instruction,
+    streaming: protocol !== 'tencent' && model.streaming !== false,
+    speechInstruction: protocol !== 'tencent' && (model.speechInstruction ?? instruction),
     ...(protocol === 'minimax' && instruction ? { instructions: [...emotions, ...(/^speech-2\.6-/u.test(model.id) ? ['fluent', 'whisper'] : [])].map(id => ({ id, name: id })) } : {}),
     ...(protocol === 'senseaudio' ? { audioTags: [{ value: '<break time=500>', name: '停顿 500 ms / Pause 500 ms' }] }
       : protocol === 'minimax' && /^speech-2\.8-/u.test(model.id) ? { audioTags: interjections.map(id => ({ value: `(${id})`, name: id })) } : {}),
@@ -22,9 +24,28 @@ export function modelFeatures(protocol, model) {
 
 export function preset(protocol = 'senseaudio') {
   if (!PROTOCOLS.includes(protocol)) return fail('adapter-config-invalid', 400)
+  if (protocol === 'aliyun') {
+    const flash = 'qwen-audio-3.0-tts-flash', plus = 'qwen-audio-3.0-tts-plus'
+    const flash31 = 'qwen-audio-3.1-tts-flash', plus31 = 'qwen-audio-3.1-tts-plus'
+    return { protocol, name: 'Alibaba Cloud Bailian（阿里云百炼）', baseURL: 'https://YOUR_WORKSPACE_ID.cn-beijing.maas.aliyuncs.com', apiKey: '', streaming: true, maxTextLength: 2000,
+      models: [flash, plus, flash31, plus31].map(id => ({ id, name: id, speechInstruction: true })),
+      voices: [
+        { id: 'longanhuan_v3.6', name: '龙安欢', modelIds: [flash] },
+        { id: 'longanfengyue', name: '龙安风悦', modelIds: [flash] },
+        { id: 'longanlingxin', name: '龙安灵心', modelIds: [plus] },
+        ...[['longanhuan_v3.1', '龙安欢 v3.1'], ['longanlingxin_v3.1', '龙安灵心 v3.1'], ['longanfengyue_v3.1', '龙安风悦 v3.1'], ['xunanchuan_v3.1', '许南川']]
+          .map(([id, name]) => ({ id, name, modelIds: [flash31, plus31] })),
+      ], selection: { model: flash, voice: 'longanhuan_v3.6', speechInstruction: '' } }
+  }
+  if (protocol === 'tencent') return {
+    protocol, name: 'Tencent Cloud（腾讯云）', baseURL: 'https://tts.tencentcloudapi.com', apiKey: '', secretId: '', streaming: false, maxTextLength: 150,
+    models: [{ id: 'TextToVoice', name: '基础语音合成 / TextToVoice', streaming: false, speechInstruction: false }],
+    voices: [['101001', '智瑜'], ['101004', '智云'], ['501000', '智斌'], ['501001', '智兰']].map(([id, name]) => ({ id, name })),
+    selection: { model: 'TextToVoice', voice: '101001', speechInstruction: '' },
+  }
   if (protocol === 'siliconflow') {
     const model = 'FunAudioLLM/CosyVoice2-0.5B'
-    return { protocol, name: 'SiliconFlow', baseURL: 'https://api.siliconflow.cn/v1', apiKey: '', streaming: true, maxTextLength: 4096,
+    return { protocol, name: 'SiliconFlow（硅基流动）', baseURL: 'https://api.siliconflow.cn/v1', apiKey: '', streaming: true, maxTextLength: 4096,
       models: [{ id: model, name: 'CosyVoice2 0.5B', speechInstruction: true }],
       voices: ['alex', 'benjamin', 'charles', 'david', 'anna', 'bella', 'claire', 'diana'].map(name => ({ id: `${model}:${name}`, name, modelIds: [model] })),
       selection: { model, voice: `${model}:alex`, speechInstruction: '' } }
@@ -45,7 +66,7 @@ export function preset(protocol = 'senseaudio') {
   const voices = protocol === 'openai' ? ['alloy', 'ash', 'ballad', 'coral', 'echo', 'fable', 'onyx', 'nova', 'sage', 'shimmer', 'verse', 'marin', 'cedar']
     : protocol === 'senseaudio' ? ['female_0033_b', 'male_0004_a'] : ['English_expressive_narrator']
   return {
-    protocol, name: protocol === 'senseaudio' ? 'SenseAudio' : protocol === 'openai' ? 'OpenAI compatible' : 'MiniMax',
+    protocol, name: protocol === 'senseaudio' ? 'SenseAudio（商汤）' : protocol === 'openai' ? 'OpenAI compatible（OpenAI 兼容）' : 'MiniMax（稀宇科技）',
     baseURL: protocol === 'senseaudio' ? 'https://api.senseaudio.cn' : protocol === 'minimax' ? 'https://api.minimax.io' : 'https://api.openai.com/v1',
     apiKey: '', streaming: true, maxTextLength: protocol === 'openai' ? 4096 : 9999,
     models: models.map(id => ({ id, name: id })), voices: voices.map(id => ({ id, name: id })),
@@ -171,6 +192,15 @@ function speechHeaders(profile, selection) { return profile.protocol === 'fish' 
 
 export async function synthesize(profile, { text, format, signal, ...overrides }, transport = fetch) {
   const selection = { ...profile.selection, ...overrides }
+  if (profile.protocol === 'tencent') return tencentSynthesize(profile, { text, format, signal }, selection, transport)
+  if (profile.protocol === 'aliyun') {
+    if (!['wav', 'mp3'].includes(format)) return fail('audio-format-unsupported', 400)
+    const parts = []
+    for await (const chunk of aliyunAudio(profile, { text, signal }, selection, format === 'wav' ? 'pcm' : 'mp3', transport)) parts.push(chunk)
+    signal.throwIfAborted()
+    const data = Buffer.concat(parts)
+    return { data: format === 'wav' ? pcmWav(data) : data, format }
+  }
   // PCM avoids upstream WAV variants and guarantees the host's required PCM WAV format.
   const upstream = format === 'wav' ? 'pcm' : 'mp3'
   const binary = BINARY_PROTOCOLS.has(profile.protocol)
@@ -188,6 +218,8 @@ export async function synthesize(profile, { text, format, signal, ...overrides }
 /** Parses complete SSE records across arbitrary byte boundaries, with bounded buffering. */
 export async function* streamPcm(profile, { text, signal, ...overrides }, transport = fetch) {
   const selection = { ...profile.selection, ...overrides }
+  if (profile.protocol === 'tencent') return fail('external-streaming-unsupported', 400)
+  if (profile.protocol === 'aliyun') { yield* aliyunAudio(profile, { text, signal }, selection, 'pcm', transport); return }
   const binary = BINARY_PROTOCOLS.has(profile.protocol)
   const response = await request(profile, speechResource(profile, selection, 'pcm', true), payload(profile, text, 'pcm', true, selection), signal, transport, { headers: speechHeaders(profile, selection) })
   const reader = response.body?.getReader()
@@ -285,6 +317,12 @@ function discoveryResult(results, kinds) {
 }
 
 export async function discover(profile, transport = fetch, signal = AbortSignal.timeout(20000)) {
+  if (profile.protocol === 'aliyun' || profile.protocol === 'tencent') {
+    signal.throwIfAborted()
+    // These adapters have no implemented read-only account catalog API. Never
+    // report static defaults as an authenticated connection or bill for a probe.
+    return { connected: false, errors: [{ kind: 'models', code: 'external-catalog-unavailable' }, { kind: 'voices', code: 'external-catalog-unavailable' }] }
+  }
   if (profile.protocol === 'elevenlabs') {
     const results = await Promise.allSettled([
       catalogJson(profile, 'models', signal, transport).then(rows => {

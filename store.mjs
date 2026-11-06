@@ -10,7 +10,7 @@ const text = (value, limit = 200) => typeof value === 'string' && value.trim().l
 
 export function catalog(profile) {
   return profile.models.map(model => ({ id: model.id, name: model.name, ...modelFeatures(profile.protocol, model),
-    streaming: profile.streaming && model.streaming !== false,
+    streaming: profile.streaming && modelFeatures(profile.protocol, model).streaming,
     voices: profile.voices.filter(voice => !voice.modelIds?.length || voice.modelIds.includes(model.id)).map(({ id, name }) => ({ id, name })) }))
 }
 
@@ -31,6 +31,8 @@ export function normalizeConfig(input, previous = { profiles: [] }) {
     const old = previous.profiles.find(item => item.id === raw.id)
     const apiKey = raw.apiKey === undefined ? old?.apiKey ?? '' : raw.apiKey
     if (typeof apiKey !== 'string' || apiKey.length > 8192 || /[\r\n]/u.test(apiKey)) invalid()
+    const secretId = raw.secretId === undefined ? old?.secretId ?? '' : raw.secretId
+    if (typeof secretId !== 'string' || secretId.length > 8192 || /[\r\n]/u.test(secretId)) invalid()
     const rows = (value, maximum) => {
       if (!Array.isArray(value) || value.length > maximum) invalid()
       const result = value.map(item => {
@@ -50,6 +52,7 @@ export function normalizeConfig(input, previous = { profiles: [] }) {
       return { ...voice, ...(ids?.length ? { modelIds: [...new Set(ids)] } : {}) }
     })
     const profile = { id: raw.id, name: raw.name.trim(), protocol: raw.protocol, baseURL: raw.baseURL.trim(), apiKey: apiKey.trim(),
+      ...(raw.protocol === 'tencent' || raw.secretId !== undefined || old?.secretId !== undefined ? { secretId: secretId.trim() } : {}),
       streaming: raw.streaming, maxTextLength: raw.maxTextLength, models, voices }
     // Empty catalogs can be saved while configuring, but cannot take over.
     profile.selection = models.length && voices.length ? validateSelection(profile, raw.selection) : { model: '', voice: '', speechInstruction: '' }
@@ -78,7 +81,8 @@ export class AdapterStore {
     return this
   }
   active() { return clone(this.state.profiles.find(item => item.id === this.state.activeId)) }
-  publicState() { return { ...clone(this.state), revision: this.revision, profiles: this.state.profiles.map(({ apiKey, ...profile }) => ({ ...clone(profile), keyConfigured: !!apiKey })) } }
+  publicState() { return { ...clone(this.state), revision: this.revision, profiles: this.state.profiles.map(({ apiKey, secretId, ...profile }) => ({ ...clone(profile), keyConfigured: !!apiKey,
+    ...(secretId !== undefined ? { secretIdConfigured: !!secretId } : {}) })) } }
   subscribe(listener) { this.listeners.add(listener); return () => this.listeners.delete(listener) }
   save(input, expectedRevision, signal) {
     const job = this.queue.then(async () => {

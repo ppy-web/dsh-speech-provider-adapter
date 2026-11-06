@@ -9,9 +9,11 @@
 - **供应商适配器**：管理供应商名称、Base URL、API Key、接口协议、模型与音色目录，调用上游接口生成音频。
 - **音色工坊**：提供模型与音色选择、试听、朗读、播放控制、历史、下载和渠道联动。
 
-当前包含 SenseAudio、OpenAI 兼容语音、MiniMax、硅基流动 SiliconFlow、ElevenLabs 和 Fish Audio 的示例适配，支持多套供应商配置、目录查询与手动补充、完整音频和 HTTP PCM 流式。不同服务的兼容情况需要分别调试；目录查询成功不代表语音合成一定可用。
+当前包含 SenseAudio（商汤）、OpenAI compatible（OpenAI 兼容）、MiniMax（稀宇科技）、SiliconFlow（硅基流动）、ElevenLabs、Fish Audio、Alibaba Cloud Bailian（阿里云百炼）和 Tencent Cloud（腾讯云）的示例适配，支持多套供应商配置、目录查询与手动补充、完整音频和 HTTP PCM 流式。不同服务的兼容情况需要分别调试；目录查询成功不代表语音合成一定可用。
 
 新增预设依据官方文档整理，未使用真实账号实测。硅基流动预填 CosyVoice2 系统音色；ElevenLabs 可刷新账号音色；Fish Audio 需要刷新工作区音色或手动填写参考音色 ID。各服务的采样率、鉴权和目录差异见 [服务商预设说明](usage.md#服务商预设)。
+
+阿里云百炼接入 Qwen-Audio-TTS HTTP 协议，需要业务空间地址与同地域 API Key；腾讯云接入 TextToVoice API 3.0，需要 SecretId / SecretKey，当前仅完整音频。两家的模型和音色先使用预设或手动维护，测试连接与目录刷新暂不可用；保存后通过音色工坊试听验证。
 
 管理页使用轻量的原生 HTML、CSS 和 JavaScript。shadcn/ui 仅作为组件风格与交互组织的参考，不引入 shadcn、Tailwind 或前端框架依赖，不增加页面构建步骤。页面提供分区标签、供应商搜索、模型与音色搜索选择及统一保存操作。
 

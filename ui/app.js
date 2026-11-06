@@ -1,8 +1,10 @@
 import { node, tabs, combobox, icon } from './components.js'
 
 const root = new URL('./', import.meta.url)
-const protocols = [{ id: 'senseaudio', name: 'SenseAudio' }, { id: 'openai', name: 'OpenAI compatible' }, { id: 'minimax', name: 'MiniMax' },
-  { id: 'siliconflow', name: 'SiliconFlow' }, { id: 'elevenlabs', name: 'ElevenLabs' }, { id: 'fish', name: 'Fish Audio' }]
+const protocols = [{ id: 'senseaudio', name: 'SenseAudio（商汤）' }, { id: 'openai', name: 'OpenAI compatible（OpenAI 兼容）' }, { id: 'minimax', name: 'MiniMax（稀宇科技）' },
+  { id: 'siliconflow', name: 'SiliconFlow（硅基流动）' }, { id: 'elevenlabs', name: 'ElevenLabs' }, { id: 'fish', name: 'Fish Audio' },
+  { id: 'aliyun', name: 'Alibaba Cloud Bailian（阿里云百炼）' }, { id: 'tencent', name: 'Tencent Cloud（腾讯云）' }]
+const manualCatalog = profile => ['aliyun', 'tencent'].includes(profile.protocol)
 
 /** Mount in the host settings surface; disposal aborts requests and removes window listeners. */
 export function mountManager(surface) {
@@ -117,8 +119,10 @@ export function mountManager(surface) {
     $('profiles').scrollTop = scrollTop
   }
   function modelSupports(profile, model) {
+    if (profile.protocol === 'tencent') return false
     const supported = profile.protocol === 'openai' ? /^gpt-4o-mini-tts(?:-|$)/u.test(model.id)
-      : profile.protocol === 'siliconflow' ? /CosyVoice2/iu.test(model.id) : profile.protocol === 'minimax' && /^speech-(?:2\.[68]|0[12])-/u.test(model.id)
+      : profile.protocol === 'aliyun' ? /^qwen-audio-3\.[01]-tts-(?:flash|plus)$/u.test(model.id)
+        : profile.protocol === 'siliconflow' ? /CosyVoice2/iu.test(model.id) : profile.protocol === 'minimax' && /^speech-(?:2\.[68]|0[12])-/u.test(model.id)
     return model.speechInstruction ?? supported
   }
   function instructionOptions(profile, model) {
@@ -146,8 +150,9 @@ export function mountManager(surface) {
       : node('textarea', { value: profile.selection.speechInstruction ?? '', maxLength: 4096, disabled: busy, 'data-focus-key': 'speech-instruction', oninput: event => { profile.selection.speechInstruction = event.target.value; changed() } }), '', true))
     else fields.append(node('p', { class: 'hint selection-note' }, t('unsupported')))
     if (!profile.models.length || !compatibleVoices(profile).length) fields.append(node('p', { class: 'hint selection-note' }, t(profile.protocol === 'fish' && !profile.voices.length ? 'fishVoiceHint' : 'missingCatalog')))
+    if (manualCatalog(profile)) fields.append(node('p', { class: 'hint selection-note' }, t('manualCatalogHint')))
     return node('section', { class: 'card form-section', id: 'selection-fields' },
-      sectionHeading(t('selection'), t('selectionHint'), [button(t('refresh'), () => query(profile, true), { 'data-focus-key': 'refresh-catalog' })]), fields)
+      sectionHeading(t('selection'), t('selectionHint'), [button(t('refresh'), () => query(profile, true), { disabled: busy || manualCatalog(profile), 'data-focus-key': 'refresh-catalog' })]), fields)
   }
   function refreshSelectionFields(profile) { $('selection-fields')?.replaceWith(selectionFields(profile)) }
   function entryOptions(profile, kind, item, index) {
@@ -157,7 +162,8 @@ export function mountManager(surface) {
       if (event.currentTarget.open) expandedEntries.add(key)
       else expandedEntries.delete(key)
     } }, node('summary', {}, t(kind === 'models' ? 'modelCapabilities' : 'voiceScope')))
-    if (kind === 'models') details.append(node('div', { class: 'model-features' },
+    if (kind === 'models' && profile.protocol === 'tencent') details.append(node('p', { class: 'hint' }, t('tencentHint')))
+    else if (kind === 'models') details.append(node('div', { class: 'model-features' },
       check(t('modelStreaming'), item.streaming !== false, value => { item.streaming = value }, `${key}:streaming`),
       check(t('instructions'), modelSupports(profile, item), value => { item.speechInstruction = value; if (!value && profile.selection.model === item.id) profile.selection.speechInstruction = ''; refreshSelectionFields(profile) }, `${key}:instructions`)))
     else details.append(field(t('voiceModels'), input((item.modelIds ?? []).join(', '), value => {
@@ -166,7 +172,7 @@ export function mountManager(surface) {
     return details
   }
   function catalogs(profile) {
-    const details = node('section', { class: 'card catalog-card' }, sectionHeading(t('catalogs'), t('catalogHint')),
+    const details = node('section', { class: 'card catalog-card' }, sectionHeading(t('catalogs'), t(manualCatalog(profile) ? 'manualCatalogHint' : 'catalogHint')),
       node('p', { class: 'catalog-count' }, t('catalogCount', { models: profile.models.length, voices: profile.voices.length })))
     const list = profile[catalogKind]
     const kinds = node('div', { class: 'catalog-kinds', role: 'group', 'aria-label': t('catalogKind') }, ...['models', 'voices'].map(kind => button(t(kind), () => {
@@ -226,30 +232,39 @@ export function mountManager(surface) {
       message(result.errors.length ? `${t('partial')} ${result.errors.map(item => `${t(item.kind)}: ${t(item.code)}`).join('; ')}` : t(refresh ? 'refreshed' : 'tested'), !result.connected)
     }, refresh ? 'refreshing' : 'testing')
   }
-  function connectionFields(profile) {
-    const keyInput = input(profile.apiKey ?? '', value => { if (value || profile._keyCleared) profile.apiKey = value; else delete profile.apiKey }, { type: 'password', autocomplete: 'new-password', placeholder: t(profile.keyConfigured ? 'keyKept' : 'keyEmpty'), 'data-focus-key': 'api-key', id: 'api-key-input' })
+  function credentialField(profile, property, configured, label) {
+    const cleared = `_${property}Cleared`
+    const keyInput = input(profile[property] ?? '', value => { if (value || profile[cleared]) profile[property] = value; else delete profile[property] }, { type: 'password', autocomplete: 'new-password', placeholder: t(profile[configured] ? 'keyKept' : 'keyEmpty'), 'data-focus-key': property, id: `${property}-input` })
     const visibility = button(t('showKey'), () => {
       const visible = keyInput.type === 'password'
       keyInput.type = visible ? 'text' : 'password'
       visibility.textContent = t(visible ? 'hideKey' : 'showKey')
       visibility.setAttribute('aria-pressed', String(visible))
-    }, { class: 'input-addon', 'aria-pressed': 'false' })
-    const clear = profile.keyConfigured ? button(t('clearKey'), () => { profile.apiKey = ''; profile.keyConfigured = false; profile._keyCleared = true; changed(); render() }, { class: 'quiet danger', 'data-focus-key': 'clear-key' }) : null
-    const keyField = node('div', { class: 'field full' }, node('label', { htmlFor: keyInput.id }, t('apiKey')),
-      node('div', { class: 'input-group' }, keyInput, visibility), node('div', { class: 'key-hint' }, node('p', { class: 'field-description' }, t(profile.keyConfigured ? 'keyKept' : 'keyEmpty')), ...(clear ? [clear] : [])))
+      visibility.setAttribute('aria-label', `${t(visible ? 'hideKey' : 'showKey')} ${label}`)
+    }, { class: 'input-addon', 'aria-pressed': 'false', 'aria-label': `${t('showKey')} ${label}`, 'data-focus-key': `visibility-${property}` })
+    const clear = profile[configured] ? button(t('clearKey'), () => { profile[property] = ''; profile[configured] = false; profile[cleared] = true; changed(); render() }, { class: 'quiet danger', 'data-focus-key': `clear-${property}` }) : null
+    return node('div', { class: 'field full' }, node('label', { htmlFor: keyInput.id }, label),
+      node('div', { class: 'input-group' }, keyInput, visibility), node('div', { class: 'key-hint' }, node('p', { class: 'field-description' }, t(profile[configured] ? 'keyKept' : 'keyEmpty')), ...(clear ? [clear] : [])))
+  }
+  function connectionFields(profile) {
+    const tencent = profile.protocol === 'tencent'
     return node('section', { class: 'card form-section' }, sectionHeading(t('connection'), t('connectionHint')),
       node('div', { class: 'field-group fields card-content' },
         field(t('name'), input(profile.name, value => { profile.name = value; $('profile-name').textContent = value || t('unnamed'); renderProfiles() }, { maxLength: 120 })),
         field(t('protocol'), select(profile.protocol, protocols, id => { profile.protocol = id; profile.selection.speechInstruction = '' }), t('protocolHint')),
-        field(t('baseURL'), input(profile.baseURL, value => { profile.baseURL = value }, { type: 'url', maxLength: 2048, spellcheck: false }), t('baseHint'), true), keyField),
-      node('div', { class: 'card-footer' }, node('p', { class: 'field-description' }, t('testHint')), button(t('test'), () => query(profile, false), { 'data-focus-key': 'test-connection' })))
+        field(t('baseURL'), input(profile.baseURL, value => { profile.baseURL = value }, { type: 'url', maxLength: 2048, spellcheck: false }), t(profile.protocol === 'aliyun' ? 'aliyunBaseHint' : tencent ? 'tencentBaseHint' : 'baseHint'), true),
+        ...(tencent ? [credentialField(profile, 'secretId', 'secretIdConfigured', 'SecretId')] : []),
+        credentialField(profile, 'apiKey', 'keyConfigured', tencent ? 'SecretKey' : t('apiKey'))),
+      node('div', { class: 'card-footer' }, node('p', { class: 'field-description' }, t(manualCatalog(profile) ? 'manualCatalogHint' : 'testHint')),
+        button(t('test'), () => query(profile, false), { disabled: busy || manualCatalog(profile), 'data-focus-key': 'test-connection' })))
   }
   function advancedFields(profile) {
-    const streaming = check(t('streaming'), profile.streaming, value => { profile.streaming = value })
+    const streaming = check(t('streaming'), profile.protocol !== 'tencent' && profile.streaming, value => { profile.streaming = value })
     streaming.querySelector('input').setAttribute('role', 'switch')
+    if (profile.protocol === 'tencent') streaming.querySelector('input').disabled = true
     const settings = node('section', { class: 'card form-section' }, sectionHeading(t('advanced'), t('advancedHint')),
       node('fieldset', { class: 'field-group fields card-content' }, node('legend', { class: 'sr-only' }, t('advanced')),
-        field(t('maxTextLength'), input(profile.maxTextLength, value => { profile.maxTextLength = Number(value) }, { type: 'number', min: 1, max: 10000 })),
+        field(t('maxTextLength'), input(profile.maxTextLength, value => { profile.maxTextLength = Number(value) }, { type: 'number', min: 1, max: profile.protocol === 'tencent' ? 150 : 10000 }), profile.protocol === 'tencent' ? t('tencentHint') : ''),
         node('div', { class: 'field switch-field' }, streaming)))
     const deleteButton = button(t(deleteId === profile.id ? 'confirmDelete' : 'delete'), () => {
       if (deleteId !== profile.id) { deleteId = profile.id; render(); return }
