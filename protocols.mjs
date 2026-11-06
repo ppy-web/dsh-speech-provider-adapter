@@ -225,13 +225,14 @@ export async function* streamPcm(profile, { text, signal, ...overrides }, transp
   const reader = response.body?.getReader()
   if (!reader) return fail('external-response-invalid')
   const decoder = new TextDecoder()
-  let pending = '', size = 0, done = false, prefix = Buffer.alloc(0), checked = false
+  let pending = '', fragments = [], fragmentLength = 0, size = 0, done = false, prefix = Buffer.alloc(0), checked = false
   try {
     if (binary && response.headers.get('content-type')?.includes('json')) return fail('external-response-invalid')
     if (binary && /audio\/(?:mpeg|mp3|wav|wave|ogg|flac)/iu.test(response.headers.get('content-type') ?? '')) return fail('invalid-audio-format')
     while (true) {
       signal.throwIfAborted()
       const chunk = await reader.read()
+      signal.throwIfAborted()
       if (binary) {
         if (chunk.done) break
         size += chunk.value.length
@@ -247,10 +248,12 @@ export async function* streamPcm(profile, { text, signal, ...overrides }, transp
         continue
       }
       pending += chunk.done ? decoder.decode() : decoder.decode(chunk.value, { stream: true })
-      if (pending.length > 2 * 1024 * 1024) return fail('stream-buffer-limit', 413)
       let boundary
       while ((boundary = /\r?\n\r?\n/u.exec(pending)) !== null) {
-        const record = pending.slice(0, boundary.index)
+        signal.throwIfAborted()
+        if (fragmentLength + boundary.index > 2 * 1024 * 1024) return fail('stream-buffer-limit', 413)
+        const record = fragments.join('') + pending.slice(0, boundary.index)
+        fragments = []; fragmentLength = 0
         pending = pending.slice(boundary.index + boundary[0].length)
         const data = record.split(/\r?\n/u).filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n')
         if (!data || data === '[DONE]') continue
@@ -265,11 +268,17 @@ export async function* streamPcm(profile, { text, signal, ...overrides }, transp
         }
         if (event.data?.status === 2) done = true
       }
+      if (pending.length > 3) {
+        fragments.push(pending.slice(0, -3))
+        fragmentLength += pending.length - 3
+        pending = pending.slice(-3)
+      }
+      if (fragmentLength + pending.length > 2 * 1024 * 1024 + 3) return fail('stream-buffer-limit', 413)
       if (chunk.done) break
     }
     signal.throwIfAborted()
     if (binary && !checked && prefix.length) yield checkPcm(prefix)
-    if (!size || size % 2 || (!binary && (!done || pending.trim()))) return fail('external-stream-incomplete')
+    if (!size || size % 2 || (!binary && (!done || (fragments.join('') + pending).trim()))) return fail('external-stream-incomplete')
   } finally { await reader.cancel().catch(() => {}); reader.releaseLock() }
 }
 

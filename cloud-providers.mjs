@@ -121,7 +121,7 @@ export async function* aliyunAudio(profile, { text, signal }, selection, format,
   const reader = response.body?.getReader()
   if (!reader) return fail('external-response-invalid')
   const decoder = new TextDecoder()
-  let pending = '', size = 0, received = 0, finished = false, prefixBytes = Buffer.alloc(0), checked = format !== 'pcm'
+  let pending = '', fragments = [], fragmentLength = 0, size = 0, received = 0, finished = false, prefixBytes = Buffer.alloc(0), checked = format !== 'pcm'
   const parse = record => {
     const data = record.split(/\r?\n/u).filter(line => line.startsWith('data:')).map(line => line.slice(5).trimStart()).join('\n')
     if (!data) return null
@@ -146,8 +146,9 @@ export async function* aliyunAudio(profile, { text, signal }, selection, format,
       let boundary
       while ((boundary = /\r?\n\r?\n/u.exec(pending)) !== null) {
         signal.throwIfAborted()
-        if (boundary.index > MAX_RECORD) return fail('stream-buffer-limit', 413)
-        const bytes = parse(pending.slice(0, boundary.index))
+        if (fragmentLength + boundary.index > MAX_RECORD) return fail('stream-buffer-limit', 413)
+        const bytes = parse(fragments.join('') + pending.slice(0, boundary.index))
+        fragments = []; fragmentLength = 0
         pending = pending.slice(boundary.index + boundary[0].length)
         if (!bytes) continue
         size += bytes.length
@@ -161,11 +162,17 @@ export async function* aliyunAudio(profile, { text, signal }, selection, format,
           prefixBytes = Buffer.alloc(0)
         } else yield bytes
       }
-      if (pending.length > MAX_RECORD) return fail('stream-buffer-limit', 413)
+      // Retain only the delimiter overlap for the next scan; join record fragments once.
+      if (pending.length > 3) {
+        fragments.push(pending.slice(0, -3))
+        fragmentLength += pending.length - 3
+        pending = pending.slice(-3)
+      }
+      if (fragmentLength + pending.length > MAX_RECORD + 3) return fail('stream-buffer-limit', 413)
       if (chunk.done || finished) break
     }
     signal.throwIfAborted()
-    if (!finished || pending.trim() || !size || (format === 'pcm' && size % 2)) return fail('external-stream-incomplete')
+    if (!finished || (fragments.join('') + pending).trim() || !size || (format === 'pcm' && size % 2)) return fail('external-stream-incomplete')
     if (prefixBytes.length) yield prefixBytes
   } finally { await reader.cancel().catch(() => {}); reader.releaseLock() }
 }

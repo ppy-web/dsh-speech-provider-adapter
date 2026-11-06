@@ -100,6 +100,25 @@ test('OpenAI PCM streaming releases the upstream reader on cancellation', async 
   assert.equal(cancelled, true)
 })
 
+test('SSE providers stop queued audio records immediately after cancellation', async () => {
+  for (const protocol of ['senseaudio', 'minimax']) {
+    const controller = new AbortController()
+    let cancelled = false
+    let delivered = 0
+    const frame = status => `data: ${JSON.stringify({ data: { audio: pcm.toString('hex'), status }, base_resp: { status_code: 0 } })}\n\n`
+    const response = new Response(new ReadableStream({ start(stream) { stream.enqueue(Buffer.from(frame(1) + frame(2))) }, cancel() { cancelled = true } }))
+    await assert.rejects(async () => {
+      for await (const bytes of streamPcm(profile(protocol), { text: 'Hi', signal: controller.signal }, async () => response)) {
+        assert.deepEqual(bytes, pcm)
+        delivered++
+        controller.abort()
+      }
+    }, { name: 'AbortError' })
+    assert.equal(delivered, 1)
+    assert.equal(cancelled, true)
+  }
+})
+
 test('malformed, truncated, oversized and wrong-format upstream audio fail with stable codes', async () => {
   for (const [response, code] of [
     [json({ data: { audio: 'zz' } }), 'invalid-audio-format'],

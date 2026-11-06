@@ -16,10 +16,12 @@ const configuration = p => ({ profiles: [p], activeId: p.id, takeoverEnabled: tr
 const event = (audio = '', finish = null) => `data: ${JSON.stringify({ output: { finish_reason: finish, audio: { data: audio, url: 'https://never-fetch.test/audio.wav?secret=signed' } } })}\r\n\r\n`
 const streamResponse = text => {
   const bytes = Buffer.from(text)
-  return new Response(new ReadableStream({ start(controller) {
+  let offset = 0
+  return new Response(new ReadableStream({ pull(controller) {
     // Split UTF-8, CRLF boundaries and JSON across arbitrary network chunks.
-    for (let index = 0; index < bytes.length; index += 17) controller.enqueue(bytes.subarray(index, index + 17))
-    controller.close()
+    if (offset >= bytes.length) { controller.close(); return }
+    controller.enqueue(bytes.subarray(offset, offset + 17))
+    offset += 17
   } }), { headers: { 'content-type': 'text/event-stream' } })
 }
 
