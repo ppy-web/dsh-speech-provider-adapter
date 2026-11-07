@@ -97,6 +97,36 @@ h3 { font-size: 14px; font-weight: 600 }
 .tabs-list button { border: 0; background: transparent; color: var(--muted-foreground); padding: 6px 12px; min-height: 32px }
 .tabs-list button[aria-selected=true] { background: var(--card); color: var(--foreground) }
 .tab-panel { min-width: 0; outline-offset: 4px }
+.stepper { display: flex; align-items: stretch; list-style: none; margin: 0; padding: 4px; background: var(--muted); border-radius: var(--radius) }
+.stepper-item { display: flex; align-items: center; flex: 1 1 0; min-width: 0 }
+.stepper-step { display: flex; align-items: center; gap: 10px; flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 8px 10px; border: 0; background: transparent; border-radius: 6px; text-align: left; justify-content: flex-start }
+.stepper-step[data-state=current] { background: var(--card); box-shadow: 0 1px 2px rgb(0 0 0 / 8%) }
+.stepper-marker { display: inline-flex; align-items: center; justify-content: center; flex: none; width: 24px; height: 24px; border-radius: 999px; border: 1px solid var(--input); font-size: 12px; font-weight: 600; color: var(--muted-foreground); background: var(--card) }
+.stepper-step[data-state=current] .stepper-marker, .stepper-step[data-state=done] .stepper-marker { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground) }
+.stepper-copy { display: flex; min-width: 0 }
+.stepper-copy strong { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+.stepper-step[data-state=upcoming] .stepper-copy strong { color: var(--muted-foreground); font-weight: 500 }
+.stepper-link { flex: 0 0 14px; height: 1px; background: var(--border); margin: 0 2px }
+.step-body { display: flex; flex-direction: column; gap: 20px; min-width: 0 }
+.step-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.manual-note { padding: 0 24px; margin: 0 0 4px }
+.summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
+.summary-item { display: flex; flex-direction: column; gap: 4px; min-width: 0 }
+.summary-label { font-size: 12px; color: var(--muted-foreground) }
+.summary-value { font-size: 14px; overflow-wrap: anywhere }
+.summary-sub { font-size: 11px; color: var(--muted-foreground); overflow-wrap: anywhere }
+.apply-body { display: flex; flex-direction: column; gap: 16px }
+.takeover-status { font-size: 12px; color: var(--muted-foreground); overflow-wrap: anywhere }
+.takeover-row { display: flex; align-items: center; justify-content: space-between; gap: 16px }
+.apply-actions { justify-content: flex-end }
+.overview-card .card-header { padding-bottom: 8px }
+.overview-body { display: flex; flex-direction: column; gap: 20px; padding: 0 24px 20px }
+.overview-switches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
+.overview-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); min-width: 0 }
+.overview-switch .switch-text { min-width: 0 }
+.overview-switch .switch-label { font-size: 13px; font-weight: 500 }
+.overview-switch small { display: block; font-size: 11px; color: var(--muted-foreground); font-weight: 400; overflow-wrap: anywhere }
+.overview-actions { flex-wrap: wrap }
 .card-header { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 16px; padding: 24px 24px 20px }
 .card-header > div:first-child { flex: 1 1 200px; min-width: 0 }
 .card-title { font-size: 15px }
@@ -107,6 +137,7 @@ h3 { font-size: 14px; font-weight: 600 }
 .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px }
 .field { display: flex; flex-direction: column; gap: 8px; min-width: 0; align-items: stretch }
 .field.full { grid-column: 1 / -1 }
+.fields > .custom-advanced { grid-column: 1 / -1 }
 .field > label, .field > span { font-size: 13px; font-weight: 500 }
 .hint, .field-description { font-size: 12px; color: var(--muted-foreground); line-height: 1.6; max-width: 72ch }
 .hint { margin-top: 6px }
@@ -137,8 +168,11 @@ button.input-addon { border: 0; background: transparent; min-height: 28px; font-
 .catalog-tools { display: flex; gap: 8px; flex: 1 1 220px; justify-content: flex-end }
 .catalog-tools input { max-width: 240px }
 .catalog-tools button { flex: none }
-.catalog-column-labels, .catalog-row-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 64px; gap: 8px; align-items: start }
-.catalog-column-labels { padding: 0 24px 8px; font-size: 12px; color: var(--muted-foreground) }
+.catalog-row-main { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 10px; align-items: start }
+.catalog-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; min-width: 0 }
+.catalog-use { display: flex; align-items: center; justify-content: center; min-height: 36px; cursor: pointer }
+.catalog-use input { width: 16px; min-width: 16px; height: 16px; min-height: 16px; margin: 0; accent-color: var(--primary) }
+.scope-note { margin: 6px 0 0 42px }
 .catalog-list { max-height: 440px; overflow: auto; margin: 0 20px; padding: 0 4px; scrollbar-color: var(--border) transparent; scrollbar-width: thin }
 .catalog-row { padding: 12px 0; border-bottom: 1px solid var(--border) }
 .catalog-row:first-child { padding-top: 0 }
@@ -200,13 +234,20 @@ button.input-addon { border: 0; background: transparent; min-height: 28px; font-
   .catalog-toolbar { margin-inline: 16px }
   .catalog-tools { flex-basis: 100%; width: 100% }
   .catalog-tools input { max-width: none }
-  .catalog-column-labels { display: none }
   .catalog-list { margin-inline: 12px }
-  .catalog-row-main { grid-template-columns: minmax(0, 1fr) 64px }
-  .catalog-row-main > input:first-child { grid-column: 1 / -1 }
+  .catalog-fields { grid-template-columns: minmax(0, 1fr) }
   .catalog-footer { margin-inline: 16px }
+  .stepper { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px }
+  .stepper-item { display: block }
+  .stepper-link { display: none }
+  .summary-grid { grid-template-columns: minmax(0, 1fr) }
+  .overview-switches { grid-template-columns: minmax(0, 1fr) }
+  .overview-body { padding-inline: 16px }
   .empty { padding: 24px 16px }
 }
 @media (max-width: 760px) { .top, .manager-shell { width: calc(100% - 32px) } }
 @media (pointer: coarse) { button, input:not([type=checkbox]), select, .check, .entry-options > summary { min-height: 44px } }
 @media (prefers-reduced-motion: reduce) { *, *::before { transition: none !important } }
+.custom-headers { display: grid; gap: 8px; margin-bottom: 8px }
+.custom-header-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 8px; align-items: center }
+.custom-header-row button { padding-inline: 8px }

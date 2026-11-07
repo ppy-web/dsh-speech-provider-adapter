@@ -24,15 +24,11 @@
         <aside class="provider-sidebar" aria-labelledby="profiles-label">
           <div class="provider-list-card card">
             <div class="list-heading"><h2 id="profiles-label" data-i18n="profiles">供应商配置</h2><button id="add" class="quiet" data-i18n="add" aria-expanded="false" aria-controls="templates" disabled>新增</button></div>
-            <div id="templates" class="templates" hidden><p class="field-description" data-i18n="chooseProtocol">选择接口协议</p><button type="button" data-protocol="senseaudio">SenseAudio（商汤）</button><button type="button" data-protocol="openai">OpenAI compatible（OpenAI 兼容）</button><button type="button" data-protocol="minimax">MiniMax（稀宇科技）</button><button type="button" data-protocol="siliconflow">SiliconFlow（硅基流动）</button><button type="button" data-protocol="elevenlabs">ElevenLabs</button><button type="button" data-protocol="fish">Fish Audio</button><button type="button" data-protocol="aliyun">Alibaba Cloud Bailian（阿里云百炼）</button><button type="button" data-protocol="tencent">Tencent Cloud（腾讯云）</button></div>
+            <div id="templates" class="templates" hidden><p class="field-description" data-i18n="chooseProtocol">选择接口协议</p><button type="button" data-protocol="senseaudio">SenseAudio（商汤）</button><button type="button" data-protocol="openai">OpenAI compatible（OpenAI 兼容）</button><button type="button" data-protocol="minimax">MiniMax（稀宇科技）</button><button type="button" data-protocol="siliconflow">SiliconFlow（硅基流动）</button><button type="button" data-protocol="elevenlabs">ElevenLabs</button><button type="button" data-protocol="fish">Fish Audio</button><button type="button" data-protocol="aliyun">Alibaba Cloud Bailian（阿里云百炼）</button><button type="button" data-protocol="tencent">Tencent Cloud（腾讯云）</button><button type="button" data-protocol="xiaomi">Xiaomi MiMo TTS（小米）</button><button type="button" data-protocol="doubao">豆包 Seed TTS（火山引擎）</button><button type="button" data-protocol="breeze">Breeze Blue TTS</button><button type="button" data-protocol="custom">自定义本地模型（Custom local model）</button></div>
             <label class="provider-search field"><span class="sr-only" data-i18n="searchProviders">搜索供应商</span><input id="provider-search" type="search" placeholder="搜索供应商" disabled></label>
             <label class="provider-select field"><span class="sr-only" data-i18n="editingProvider">正在编辑的供应商</span><select id="profile-select" disabled></select></label>
             <nav id="profiles" aria-labelledby="profiles-label"></nav>
           </div>
-          <section class="takeover-card card" aria-labelledby="takeover-label">
-            <div class="takeover-heading"><h2 id="takeover-label" data-i18n="takeover">接管语音合成</h2><input id="takeover" type="checkbox" role="switch" aria-labelledby="takeover-label" disabled></div>
-            <p id="takeover-status" role="status" aria-live="polite"></p><p class="field-description" data-i18n="takeoverHint">接管开关和当前供应商在保存后生效。</p>
-          </section>
         </aside>
         <section id="editor" aria-label="Provider configuration" aria-busy="true"></section>
       </div>
