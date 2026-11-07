@@ -170,5 +170,13 @@
   "customBodyTypeHint": "JSON sends application/json; Form sends application/x-www-form-urlencoded (for local services that read form fields). GET requests map the template to query parameters.",
   "customBody": "Request body JSON template",
   "customBodyHint": "JSON template supporting {{text}}, {{model}}, {{voice}}, {{format}}, {{sampleRate}}, {{instruction}} and {{apiKey}}; keys whose voice/instruction/apiKey placeholder is empty are omitted.",
-  "customOptionHint": "pcm responses are wrapped as WAV at the configured sample rate; wav / mp3 are used as returned. binary uses the raw body; json-* extracts Base64 or hex audio at the audio path."
+  "customOptionHint": "pcm responses are wrapped as WAV at the configured sample rate; wav / mp3 are used as returned. binary uses the raw body; json-* extracts Base64 or hex audio at the audio path.",
+  "optional": "optional",
+  "probe": "Probe local ports",
+  "probing": "Probing local ports…",
+  "probeHint": "Scan common local service ports on 127.0.0.1; click a result to fill the Base URL.",
+  "probeFound": "Found {count} reachable local port(s).",
+  "probeNone": "No reachable local port found. Make sure the service is running.",
+  "usePort": "Use",
+  "getApiKey": "Get API Key"
 }

@@ -87,7 +87,7 @@ ElevenLabs 音色与 Fish Audio 工作区音色按分页读取，去重后最多
 
 在“连接供应商”步骤下方的“自定义请求（高级）”中可完全自定义：请求方法（GET/POST）、相对请求路径（可带查询串）、请求头（支持 `{{apiKey}}` 等占位符）、JSON 请求体模板、请求体编码（`JSON` 或表单 `application/x-www-form-urlencoded`）、取音方式（binary 二进制 / json-base64 / json-hex）与取音路径、返回音频格式（pcm/wav/mp3）与采样率。请求体模板支持占位符 `{{text}}`、`{{model}}`、`{{voice}}`、`{{format}}`（等于返回音频格式）、`{{sampleRate}}`、`{{instruction}}`、`{{apiKey}}`；当 `voice`/`instruction`/`apiKey` 对应占位符为空时，该字段或请求头会自动省略。`Content-Type` 由请求体编码自动设置（JSON 为 `application/json`，表单为 `application/x-www-form-urlencoded`）；GET 请求没有请求体，模板会转为查询参数。
 
-例如连接本机 MOSS-TTS-Nano（`http://127.0.0.1:18083`）：请求方法 `POST`、路径 `api/generate`、请求体编码“表单”、模板 `{"text":"{{text}}","demo_id":"{{voice}}"}`、取音方式 `json-base64`、取音路径 `audio_base64`、返回格式 `wav`，无需 API Key；音色 ID 使用内置 `demo-1…demo-N` 或“我的音色”中的 `my-*`。
+例如连接本机 MOSS-TTS-Nano（`http://127.0.0.1:18083`）：请求方法 `POST`、路径 `api/generate`、请求体编码“表单”、模板 `{"text":"{{text}}","demo_id":"{{voice}}"}`、取音方式 `json-base64`、取音路径 `audio_base64`、返回格式 `wav`，无需 API Key；音色 ID 使用内置 `demo-1…demo-N` 或“我的音色”中的 `my-*`。连接步骤还提供“探测本地端口”按钮：后端在 `127.0.0.1` 上扫描常见本地服务端口（如 18083 / 8880 / 8000 / 8080 / 1234 等），点击结果即可填入 Base URL；API Key 对自定义协议为可选。
 
 格式与流式：返回 `pcm` 时按配置的采样率封装为 WAV；`wav`/`mp3` 直接使用上游音频。仅当返回 `pcm`、采样率 24000 且取音方式为 binary 时支持 HTTP 流式；`json-*`、`wav`、`mp3` 仅完整音频。自定义协议不做只读目录查询，测试连接与刷新目录不可用，请在“目录管理”中手动维护模型与音色，保存后到音色工坊试听验证。仍不支持 WebSocket、URL 音频下载、multipart 或非 JSON 请求体。
 

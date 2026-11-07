@@ -5,6 +5,7 @@ import { TtsProviderError } from './host-api.mjs'
 import { AdapterStore, catalog, normalizeConfig, validateSelection } from './store.mjs'
 import { discover, preset, streamPcm, synthesize, PROTOCOLS } from './protocols.mjs'
 import { credentialsReady } from './cloud-providers.mjs'
+import { probeLocalPorts } from './local-probe.mjs'
 
 export const name = 'speech-provider-adapter'
 export const inject = ['speechSynthesis', 'webServer', 'settings']
@@ -109,7 +110,7 @@ export async function apply(ctx, config) {
       res.end(data)
     } }))
   }
-  for (const action of ['state', 'save', 'refresh', 'test', 'preset']) ctx.effect(() => ctx.webServer.register({
+  for (const action of ['state', 'save', 'refresh', 'test', 'preset', 'probe']) ctx.effect(() => ctx.webServer.register({
     kind: 'exact', path: `${ROOT}/api/${action}`, async handler(req, res) {
       const read = action === 'state'
       if (req.method !== (read ? 'GET' : 'POST')) { reply(res, 405, { error: 'method-not-allowed' }); return }
@@ -128,6 +129,7 @@ export async function apply(ctx, config) {
           if (!PROTOCOLS.includes(body.protocol)) throw new TtsProviderError('adapter-config-invalid', undefined, 400)
           reply(res, 200, preset(body.protocol)); return
         }
+        if (action === 'probe') { reply(res, 200, await probeLocalPorts(fetch, Array.isArray(body.ports) ? body.ports : undefined, controller.signal)); return }
         if (body.revision !== store.revision) throw new TtsProviderError('adapter-config-changed', undefined, 409)
         if (action === 'save') {
           // Reject ownership conflicts before writing a takeover request to disk.

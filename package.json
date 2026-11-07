@@ -1,6 +1,6 @@
 {
   "name": "dsh-speech-provider-adapter",
-  "version": "0.1.0-next.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "供应商适配器示例插件：为音色工坊管理自定义语音供应商、模型与音色",
   "icon": "./assets/plugin-icons/avatar.png",
@@ -69,7 +69,7 @@
   "packageManager": "pnpm@11.22.0",
   "publishConfig": {
     "access": "public",
-    "tag": "next"
+    "tag": "latest"
   },
   "dependencies": {
     "ws": "^8.22.1"

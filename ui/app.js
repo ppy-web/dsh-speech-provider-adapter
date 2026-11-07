@@ -14,6 +14,20 @@ const DEFAULT_CUSTOM = {
   response: 'binary', audioPath: 'data.audio', audioFormat: 'wav', sampleRate: 24000,
 }
 const manualCatalog = profile => ['aliyun', 'tencent', 'custom'].includes(profile.protocol)
+// API Key / signup references, taken from README's official documentation links.
+const API_KEY_LINKS = {
+  senseaudio: 'https://docs.senseaudio.cn/api-reference/endpoint/tts/synthesize.md',
+  openai: 'https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create',
+  minimax: 'https://platform.minimax.io/docs/api-reference/speech-t2a-http',
+  siliconflow: 'https://docs.siliconflow.cn/docs/api/audio-speech-post',
+  elevenlabs: 'https://elevenlabs.io/docs/api-reference/text-to-speech/convert',
+  fish: 'https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech',
+  aliyun: 'https://help.aliyun.com/zh/model-studio/qwen-audio-tts-http-api',
+  tencent: 'https://cloud.tencent.com/document/api/1073/37995',
+  xiaomi: 'https://ppy-web.github.io/dsh-plugin-xiaomi-mimo-tts/',
+  doubao: 'https://docs.volcengine.com/docs/DoubaoVoice/Tonelist-1?lang=zh',
+  breeze: 'https://breezeblue.ai/zh/voice-library',
+}
 const STEPS = ['connect', 'models', 'voices', 'finish']
 const STEP_KEYS = { connect: 'stepConnect', models: 'stepModels', voices: 'stepVoices', finish: 'stepFinish' }
 
@@ -25,6 +39,7 @@ export function mountManager(surface) {
   let language = localStorage.getItem('dsh-speech-adapter-language') ?? (navigator.language.startsWith('zh') ? 'zh' : 'en')
   if (!['zh', 'en'].includes(language)) language = 'en'
   let words = {}, state, accepted, selected = '', busy = true, busyKind = 'loading', dirty = false, deleteId = null
+  let probeResults = null
   let step = 'connect', modelSearch = '', modelLimit = 40, voiceSearch = '', voiceLimit = 40
   const expandedEntries = new Set(), stepByProfile = new Map()
   let profileSearch = ''
@@ -133,7 +148,7 @@ export function mountManager(surface) {
     return control
   }
   function chooseProfile(id) {
-    selected = id; deleteId = null; modelSearch = ''; voiceSearch = ''; modelLimit = 40; voiceLimit = 40
+    selected = id; deleteId = null; modelSearch = ''; voiceSearch = ''; modelLimit = 40; voiceLimit = 40; probeResults = null
     const profile = state.profiles.find(item => item.id === id)
     step = stepByProfile.get(id) ?? defaultStep(profile)
     message(); render()
@@ -187,13 +202,17 @@ export function mountManager(surface) {
   function connectionFields(profile) {
     const tencent = profile.protocol === 'tencent'
     const manual = manualCatalog(profile)
-    return node('section', { class: 'card form-section' }, sectionHeading(t('stepConnect'), t('connectionHint')),
+    const keyLink = API_KEY_LINKS[profile.protocol]
+      ? node('a', { class: 'api-key-link', href: API_KEY_LINKS[profile.protocol], target: '_blank', rel: 'noopener noreferrer', 'data-focus-key': 'get-api-key' }, t('getApiKey'))
+      : null
+    return node('section', { class: 'card form-section' }, sectionHeading(t('stepConnect'), t('connectionHint'), keyLink ? [keyLink] : []),
       node('div', { class: 'field-group fields card-content' },
         field(t('name'), input(profile.name, value => { profile.name = value; const heading = $('profile-name'); if (heading) heading.textContent = value || t('unnamed'); renderProfiles() }, { maxLength: 120 })),
         field(t('protocol'), select(profile.protocol, protocols, id => { profile.protocol = id; profile.selection.speechInstruction = ''; if (id === 'custom' && !profile.custom) profile.custom = structuredClone(DEFAULT_CUSTOM) }), t('protocolHint')),
         field(t('baseURL'), input(profile.baseURL, value => { profile.baseURL = value }, { type: 'url', maxLength: 2048, spellcheck: false }), t(profile.protocol === 'aliyun' ? 'aliyunBaseHint' : tencent ? 'tencentBaseHint' : profile.protocol === 'doubao' ? 'doubaoBaseHint' : profile.protocol === 'breeze' ? 'breezeBaseHint' : profile.protocol === 'xiaomi' ? 'xiaomiBaseHint' : profile.protocol === 'custom' ? 'customBaseHint' : 'baseHint'), true),
+        ...(profile.protocol === 'custom' ? [probeField(profile)] : []),
         ...(tencent ? [credentialField(profile, 'secretId', 'secretIdConfigured', 'SecretId')] : []),
-        credentialField(profile, 'apiKey', 'keyConfigured', tencent ? 'SecretKey' : t('apiKey')),
+        credentialField(profile, 'apiKey', 'keyConfigured', tencent ? 'SecretKey' : profile.protocol === 'custom' ? `${t('apiKey')}（${t('optional')}）` : t('apiKey')),
         ...(profile.protocol === 'custom' ? [customAdvanced(profile)] : [])),
       node('div', { class: 'card-footer' }, node('p', { class: 'field-description' }, t(manual ? 'manualCatalogHint' : 'connectHint')),
         node('div', { class: 'actions' },
@@ -201,6 +220,28 @@ export function mountManager(surface) {
           button(t('pullCatalogs'), () => query(profile, true, 'models'), { class: 'primary', disabled: busy || manual, 'data-focus-key': 'fetch-connection' }))))
   }
   function connectionStep(profile) { return node('div', { class: 'step-body' }, connectionFields(profile), stepNav(profile, null, 'models')) }
+
+  function probeField(profile) {
+    const results = probeResults
+    return node('div', { class: 'field full probe-field' },
+      node('div', { class: 'actions' }, button(t('probe'), () => probeLocal(profile), { 'data-focus-key': 'probe-local' })),
+      node('p', { class: 'field-description' }, t('probeHint')),
+      ...(results && results.length ? [node('div', { class: 'probe-results' },
+        ...results.map(item => button(`${item.service ? `${item.service} · ` : ''}127.0.0.1:${item.port}`, () => {
+          profile.baseURL = `http://127.0.0.1:${item.port}`
+          changed(); render()
+        }, { class: 'quiet', 'data-focus-key': `probe-port-${item.port}`, 'aria-label': `${t('usePort')} 127.0.0.1:${item.port}` })))] : []))
+  }
+  async function probeLocal(profile) {
+    await action(async () => {
+      const result = await api('probe', {})
+      const reachable = (result.ports ?? []).filter(item => item.reachable)
+      probeResults = reachable
+      if (reachable.length === 1) profile.baseURL = `http://127.0.0.1:${reachable[0].port}`
+      changed()
+      message(reachable.length ? t('probeFound', { count: reachable.length }) : t('probeNone'), !reachable.length)
+    }, 'probing')
+  }
 
   /** Advanced, fully custom request mapping for local model endpoints. */
   function customAdvanced(profile) {
@@ -474,7 +515,7 @@ export function mountManager(surface) {
       const profile = await api('preset', { protocol })
       profile.id = crypto.randomUUID(); state.profiles.push(profile); selected = profile.id; step = 'connect'; stepByProfile.set(profile.id, step)
       if (!state.activeId) state.activeId = profile.id
-      modelSearch = ''; voiceSearch = ''; modelLimit = 40; voiceLimit = 40; deleteId = null; profileSearch = ''; $('provider-search').value = ''
+      modelSearch = ''; voiceSearch = ''; modelLimit = 40; voiceLimit = 40; deleteId = null; profileSearch = ''; probeResults = null; $('provider-search').value = ''
       $('templates').hidden = true; $('add').setAttribute('aria-expanded', 'false')
       changed()
     }, 'adding')

@@ -13,7 +13,7 @@
 
 新增预设依据官方文档整理，未使用真实账号实测。硅基流动预填 CosyVoice2 系统音色；ElevenLabs 可刷新账号音色；Fish Audio 需要刷新工作区音色或手动填写参考音色 ID。各服务的采样率、鉴权和目录差异见 [服务商预设说明](usage.md#服务商预设)。
 
-阿里云百炼接入 Qwen-Audio-TTS HTTP 协议，需要业务空间地址与同地域 API Key；腾讯云接入 TextToVoice API 3.0，需要 SecretId / SecretKey，当前仅完整音频。两家的模型和音色先使用预设或手动维护，测试连接与目录刷新暂不可用；保存后通过音色工坊试听验证。小米 MiMo 走 OpenAI 兼容 chat/completions（`sk-` / `tp-` 密钥），Breeze Blue 走 `xi-api-key` 二进制音频，豆包 Seed 走 WebSocket 双向流（`ark-` 密钥自动改用 agent-plan 地址）；三者都使用内置预设目录，并支持完整音频与流式播放。自定义本地模型协议默认指向本地 OpenAI 风格的 `/audio/speech`，只需本地 Base URL（API Key 可选），并在“高级选项”中支持自定义请求方法、路径、请求头、JSON 请求体模板、请求体编码（JSON / 表单）、取音方式与音频格式，详见 [自定义本地模型](usage.md#自定义本地模型)。
+阿里云百炼接入 Qwen-Audio-TTS HTTP 协议，需要业务空间地址与同地域 API Key；腾讯云接入 TextToVoice API 3.0，需要 SecretId / SecretKey，当前仅完整音频。两家的模型和音色先使用预设或手动维护，测试连接与目录刷新暂不可用；保存后通过音色工坊试听验证。小米 MiMo 走 OpenAI 兼容 chat/completions（`sk-` / `tp-` 密钥），Breeze Blue 走 `xi-api-key` 二进制音频，豆包 Seed 走 WebSocket 双向流（`ark-` 密钥自动改用 agent-plan 地址）；三者都使用内置预设目录，并支持完整音频与流式播放。自定义本地模型协议默认指向本地 OpenAI 风格的 `/audio/speech`，只需本地 Base URL（API Key 可选），并在“高级选项”中支持自定义请求方法、路径、请求头、JSON 请求体模板、请求体编码（JSON / 表单）、取音方式与音频格式；连接步骤还可“探测本地端口”自动发现本机服务，详见 [自定义本地模型](usage.md#自定义本地模型)。
 
 管理页使用轻量的原生 HTML、CSS 和 JavaScript。shadcn/ui 仅作为组件风格与交互组织的参考，不引入 shadcn、Tailwind 或前端框架依赖，不增加页面构建步骤。页面提供四步配置流程（连接供应商 → 配置模型列表 → 配置音色列表 → 保存与接管）、供应商搜索，模型与音色从接口拉取（去重追加）或手动补充，以及统一保存操作。
 

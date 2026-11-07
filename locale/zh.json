@@ -170,5 +170,13 @@
   "customBodyTypeHint": "JSON 使用 application/json；表单使用 application/x-www-form-urlencoded（适合以表单字段接收参数的本地服务）。GET 请求会把模板转成查询参数。",
   "customBody": "请求体 JSON 模板",
   "customBodyHint": "JSON 模板，支持占位符 {{text}}、{{model}}、{{voice}}、{{format}}、{{sampleRate}}、{{instruction}}、{{apiKey}}；voice/instruction/apiKey 为空时对应字段自动省略。",
-  "customOptionHint": "返回音频为 pcm 时按采样率封装为 WAV；wav / mp3 直接使用上游音频。取音方式为 binary 时响应体即音频；json-* 时按取音路径从 JSON 提取 Base64 或十六进制音频。"
+  "customOptionHint": "返回音频为 pcm 时按采样率封装为 WAV；wav / mp3 直接使用上游音频。取音方式为 binary 时响应体即音频；json-* 时按取音路径从 JSON 提取 Base64 或十六进制音频。",
+  "optional": "可选",
+  "probe": "探测本地端口",
+  "probing": "正在探测本地端口…",
+  "probeHint": "在 127.0.0.1 上扫描常见本地服务端口；点击结果填入 Base URL。",
+  "probeFound": "探测到 {count} 个可用本地端口。",
+  "probeNone": "未发现可访问的本地端口，请确认服务已启动。",
+  "usePort": "使用",
+  "getApiKey": "获取 API Key"
 }

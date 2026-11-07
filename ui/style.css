@@ -251,3 +251,8 @@ button.input-addon { border: 0; background: transparent; min-height: 28px; font-
 .custom-headers { display: grid; gap: 8px; margin-bottom: 8px }
 .custom-header-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; gap: 8px; align-items: center }
 .custom-header-row button { padding-inline: 8px }
+.probe-field .actions { justify-content: flex-start }
+.probe-results { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px }
+.probe-results button { font-variant-numeric: tabular-nums }
+.api-key-link { font-size: 12px; font-weight: 500; color: var(--primary); text-decoration: none; white-space: nowrap; align-self: center }
+.api-key-link:hover { text-decoration: underline }
