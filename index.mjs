@@ -19,7 +19,9 @@ export function createProvider(store, transport = fetch) {
       const profile = store.active()
       const models = profile ? catalog(profile) : []
       const ready = credentialsReady(profile) && models.some(model => model.id === profile.selection.model && model.voices.some(voice => voice.id === profile.selection.voice))
-      return { name: profile?.name ?? 'Speech providers', ready, formats: ['wav', 'mp3'], maxTextLength: profile ? Math.min(profile.maxTextLength, profile.protocol === 'tencent' ? 150 : profile.protocol === 'openai' ? 4096 : profile.protocol === 'minimax' ? 9999 : 10000) : 1000,
+      const formats = profile?.protocol === 'custom' ? (profile.custom?.audioFormat === 'mp3' ? ['mp3'] : ['wav']) : ['wav', 'mp3']
+      const maxTextLength = profile ? Math.min(profile.maxTextLength, profile.protocol === 'tencent' ? 150 : profile.protocol === 'openai' ? 4096 : profile.protocol === 'custom' ? 4096 : profile.protocol === 'minimax' ? 9999 : 10000) : 1000
+      return { name: profile?.name ?? 'Speech providers', ready, formats, maxTextLength,
         ...(!ready ? { unavailableReason: 'external-provider-not-ready' } : {}), models,
         ...(profile?.selection.model ? { selection: profile.selection, modelName: models.find(model => model.id === profile.selection.model)?.name,
           voiceName: profile.voices.find(voice => voice.id === profile.selection.voice)?.name } : {}), configurationId: profile?.id,
@@ -135,7 +137,7 @@ export async function apply(ctx, config) {
         }
         const normalized = normalizeConfig({ takeoverEnabled: false, activeId: body.profile?.id ?? '', profiles: [body.profile] }, store.state)
         const profile = normalized.profiles[0]
-        if (!profile.apiKey) throw new TtsProviderError('api-key-not-configured', undefined, 409)
+        if (!profile.apiKey && profile.protocol !== 'custom') throw new TtsProviderError('api-key-not-configured', undefined, 409)
         const result = await discover(profile, fetch, controller.signal)
         reply(res, 200, result)
       } catch (error) { reply(res, error instanceof TtsProviderError ? error.status : controller.signal.aborted ? 504 : 502,

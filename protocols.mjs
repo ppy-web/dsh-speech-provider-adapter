@@ -1,18 +1,55 @@
 import { TtsProviderError } from './host-api.mjs'
 import { aliyunAudio, tencentSynthesize } from './cloud-providers.mjs'
+import { synthesizeXiaomi, streamXiaomi, synthesizeBreeze, streamBreeze, synthesizeDoubao, streamDoubao, DOUBAO_TTS_ENDPOINT } from './native-providers.mjs'
+import { synthesizeCustom, streamCustom } from './custom-provider.mjs'
 
 const MAX_AUDIO = 32 * 1024 * 1024
 const fail = (code, status = 502) => { throw new TtsProviderError(code, undefined, status) }
-export const PROTOCOLS = ['senseaudio', 'openai', 'minimax', 'siliconflow', 'elevenlabs', 'fish', 'aliyun', 'tencent']
+export const PROTOCOLS = ['senseaudio', 'openai', 'minimax', 'siliconflow', 'elevenlabs', 'fish', 'aliyun', 'tencent', 'xiaomi', 'doubao', 'breeze', 'custom']
 const BINARY_PROTOCOLS = new Set(['openai', 'siliconflow', 'elevenlabs', 'fish'])
 const FISH_MODELS = ['s2.1-pro', 's2.1-pro-free', 's2-pro', 's1']
+const XIAOMI_MODELS = ['mimo-v2.5-tts']
+const XIAOMI_VOICES = ['冰糖', '茉莉', '苏打', '白桦', 'Mia', 'Chloe', 'Milo', 'Dean']
+const DOUBAO_MODELS = ['seed-tts-2.0', 'seed-icl-2.0']
+const DOUBAO_VOICES = [
+  ['Vivi 2.0', 'zh_female_vv_uranus_bigtts'], ['知性灿灿 2.0', 'zh_female_cancan_uranus_bigtts'], ['撒娇学妹 2.0', 'zh_female_sajiaoxuemei_uranus_bigtts'],
+  ['爽快思思 2.0', 'zh_female_shuangkuaisisi_uranus_bigtts'], ['少年梓辛 2.0', 'zh_male_shaonianzixin_uranus_bigtts'], ['猴哥 2.0', 'zh_male_sunwukong_uranus_bigtts'],
+  ['黑猫侦探社咪仔 2.0', 'zh_female_mizai_uranus_bigtts'], ['儒雅逸辰 2.0', 'zh_male_ruyayichen_uranus_bigtts'], ['TVB女声 2.0', 'zh_female_tvbnv_uranus_bigtts'],
+  ['四郎 2.0', 'zh_male_silang_uranus_bigtts'], ['熊二 2.0', 'zh_male_xionger_uranus_bigtts'], ['樱桃丸子 2.0', 'zh_female_yingtaowanzi_uranus_bigtts'],
+  ['高冷御姐 2.0', 'zh_female_gaolengyujie_uranus_bigtts'], ['傲娇霸总 2.0', 'zh_male_aojiaobazong_uranus_bigtts'], ['悬疑解说 2.0', 'zh_male_xuanyijieshuo_uranus_bigtts'],
+  ['小何 2.0', 'zh_female_xiaohe_uranus_bigtts'], ['云舟 2.0', 'zh_male_m191_uranus_bigtts'], ['小天 2.0', 'zh_male_taocheng_uranus_bigtts'],
+  ['清澈梓梓 2.0', 'zh_female_qingchezizi_uranus_bigtts'], ['女雷神 2.0', 'zh_female_nvleishen_uranus_bigtts'], ['直率英子 2.0', 'zh_female_zhishuaiyingzi_uranus_bigtts'],
+  ['谄媚女声 2.0', 'zh_female_chanmeinv_uranus_bigtts'], ['玲玲姐姐 2.0', 'zh_female_lingling_uranus_bigtts'], ['娇喘女声 2.0', 'zh_female_jiaochuannv_uranus_bigtts'],
+  ['鲁班七号 2.0', 'zh_male_lubanqihao_uranus_bigtts'], ['春日部姐姐 2.0', 'zh_female_chunribu_uranus_bigtts'], ['温柔妈妈 2.0', 'zh_female_wenroumama_uranus_bigtts'],
+  ['霸气青叔 2.0', 'zh_male_baqiqingshu_uranus_bigtts'], ['深夜播客 2.0', 'zh_male_shenyeboke_uranus_bigtts'], ['儿童绘本 2.0', 'zh_female_xiaoxue_uranus_bigtts'],
+]
+const BREEZE_MODEL = 'breeze-tts-2'
+const BREEZE_VOICES = [
+  ['voc_rh6e8hdbraz6', '哈基米娘'], ['voc_b86bfwct4cjn', '香农小姐'], ['voc_8yud7hz7c9q2', '大肥鱼（迷糊版）'], ['voc_u3nxkd5578wc', '大肥鱼（机灵版）'],
+  ['voc_reys5un5t4ed', '深思先生'], ['voc_pczdutjax3bc', '实录观察者'], ['voc_ytteeuvt48pm', '岁月回声'], ['voc_mmbkawdhpk29', '晨光记录员'],
+  ['voc_dzumjsqzf948', '素言叙事'], ['voc_3n4rhszjst3f', '青衿师语'], ['voc_zbggdxky3yu3', '深夜观察者'], ['voc_xb3zjqcmwp44', '晨曦讲解员'],
+  ['voc_ynfyjw6yrv7p', '雅致述评人'], ['voc_vhv3b2252en7', '星海引路人'], ['voc_tzneby749yja', '灵动汐语'], ['voc_nmea5hnwvwcu', '幽兰语者'],
+  ['voc_t2kpg5h4ebah', '热点快评员'], ['voc_rye44d226x46', '雅韵谈锋'], ['voc_kvzxd25fpshp', '晨露花语'], ['voc_chsmgh7pkufq', '元气茶香'],
+  ['voc_7jsxftc2rm3n', '墨香少女'], ['voc_csdwmam68z4k', '疾风信使'], ['voc_shetwnrd3q3q', '静谧流年'], ['voc_2z7zu82z2eu3', '林间漫语者'],
+  ['voc_wuwu3ckdfe4q', '云端播报员'], ['voc_yu7t5b4tx7c7', '深夜树洞'], ['voc_9zyu28uzmjsk', '八方馆掌柜'], ['voc_2b358584ukkb', '晨曦热血少年'],
+  ['voc_ge466ug83952', '智械管家'], ['voc_f3zbgr88pz5m', '月夜低语者'],
+]
 const emotions = ['happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised', 'calm']
 const interjections = ['laughs', 'chuckle', 'coughs', 'clear-throat', 'groans', 'breath', 'pant', 'inhale', 'exhale', 'gasps', 'sniffs', 'sighs', 'snorts', 'burps', 'lip-smacking', 'humming', 'hissing', 'emm', 'sneezes']
 
-export function modelFeatures(protocol, model) {
+export function modelFeatures(protocol, model, profile) {
+  if (protocol === 'custom') {
+    const custom = profile?.custom
+    return { streaming: custom?.audioFormat === 'pcm' && custom?.sampleRate === 24000 && model.streaming !== false,
+      speechInstruction: model.speechInstruction === true }
+  }
   const instruction = protocol === 'openai' ? /^gpt-4o-mini-tts(?:-|$)/u.test(model.id)
     : protocol === 'aliyun' ? /^qwen-audio-3\.[01]-tts-(?:flash|plus)$/u.test(model.id)
-      : protocol === 'siliconflow' ? /CosyVoice2/iu.test(model.id) : protocol === 'minimax' && /^speech-(?:2\.[68]|0[12])-/u.test(model.id)
+      : protocol === 'siliconflow' ? /CosyVoice2/iu.test(model.id)
+        : protocol === 'minimax' ? /^speech-(?:2\.[68]|0[12])-/u.test(model.id)
+          : protocol === 'xiaomi' ? true
+            : protocol === 'breeze' ? true
+              : protocol === 'doubao' ? model.id === 'seed-tts-2.0' : false
   return {
     streaming: protocol !== 'tencent' && model.streaming !== false,
     speechInstruction: protocol !== 'tencent' && (model.speechInstruction ?? instruction),
@@ -60,6 +97,36 @@ export function preset(protocol = 'senseaudio') {
     protocol, name: 'Fish Audio', baseURL: 'https://api.fish.audio', apiKey: '', streaming: true, maxTextLength: 4096,
     models: FISH_MODELS.map(id => ({ id, name: id })), voices: [],
     selection: { model: FISH_MODELS[0], voice: '', speechInstruction: '' },
+  }
+  if (protocol === 'xiaomi') return {
+    protocol, name: 'Xiaomi MiMo TTS（小米）', baseURL: 'https://api.xiaomimimo.com/v1', apiKey: '', streaming: true, maxTextLength: 10000,
+    models: XIAOMI_MODELS.map(id => ({ id, name: 'MiMo v2.5 TTS', streaming: true, speechInstruction: true })),
+    voices: XIAOMI_VOICES.map(id => ({ id, name: id })),
+    selection: { model: 'mimo-v2.5-tts', voice: '冰糖', speechInstruction: '' },
+  }
+  if (protocol === 'doubao') return {
+    protocol, name: '豆包 Seed TTS（火山引擎）', baseURL: DOUBAO_TTS_ENDPOINT, apiKey: '', streaming: true, maxTextLength: 10000,
+    models: DOUBAO_MODELS.map(id => ({ id, name: id === 'seed-icl-2.0' ? 'Seed ICL 2.0（复刻音色）' : 'Seed TTS 2.0', streaming: true, speechInstruction: id === 'seed-tts-2.0' })),
+    voices: DOUBAO_VOICES.map(([name, id]) => ({ id, name })),
+    selection: { model: 'seed-tts-2.0', voice: 'zh_female_vv_uranus_bigtts', speechInstruction: '' },
+  }
+  if (protocol === 'breeze') return {
+    protocol, name: 'Breeze Blue TTS', baseURL: 'https://api.breeze.blue/v1', apiKey: '', streaming: true, maxTextLength: 1000,
+    models: [{ id: BREEZE_MODEL, name: 'Breeze TTS 2', streaming: true, speechInstruction: true }],
+    voices: BREEZE_VOICES.map(([id, name]) => ({ id, name })),
+    selection: { model: BREEZE_MODEL, voice: 'voc_rh6e8hdbraz6', speechInstruction: '' },
+  }
+  if (protocol === 'custom') return {
+    protocol, name: '自定义本地模型（Custom local model）', baseURL: 'http://127.0.0.1:8880/v1', apiKey: '', streaming: false, maxTextLength: 4096,
+    models: [{ id: 'tts-1', name: '默认模型 / Default model', speechInstruction: true }],
+    voices: [{ id: 'default', name: '默认音色 / Default voice' }],
+    selection: { model: 'tts-1', voice: 'default', speechInstruction: '' },
+    custom: {
+      method: 'POST', path: 'audio/speech', bodyType: 'json',
+      headers: [{ name: 'Authorization', value: 'Bearer {{apiKey}}' }],
+      body: { model: '{{model}}', input: '{{text}}', voice: '{{voice}}', response_format: '{{format}}', instructions: '{{instruction}}' },
+      response: 'binary', audioPath: 'data.audio', audioFormat: 'wav', sampleRate: 24000,
+    },
   }
   const models = protocol === 'senseaudio' ? ['sensenova-tts-2.0', 'senseaudio-tts-1.5-260319']
     : protocol === 'minimax' ? ['speech-2.8-hd', 'speech-2.8-turbo', 'speech-2.6-hd', 'speech-2.6-turbo', 'speech-02-hd', 'speech-02-turbo'] : ['gpt-4o-mini-tts', 'tts-1', 'tts-1-hd']
@@ -145,12 +212,12 @@ function checkPcm(bytes) {
   return bytes
 }
 
-export function pcmWav(data) {
+export function pcmWav(data, sampleRate = 24000) {
   if (!data.length || data.length % 2) return fail('invalid-audio-format')
   const header = Buffer.alloc(44)
   header.write('RIFF'); header.writeUInt32LE(data.length + 36, 4); header.write('WAVEfmt ', 8)
   header.writeUInt32LE(16, 16); header.writeUInt16LE(1, 20); header.writeUInt16LE(1, 22)
-  header.writeUInt32LE(24000, 24); header.writeUInt32LE(48000, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34)
+  header.writeUInt32LE(sampleRate, 24); header.writeUInt32LE(sampleRate * 2, 28); header.writeUInt16LE(2, 32); header.writeUInt16LE(16, 34)
   header.write('data', 36); header.writeUInt32LE(data.length, 40)
   return Buffer.concat([header, data])
 }
@@ -192,6 +259,7 @@ function speechHeaders(profile, selection) { return profile.protocol === 'fish' 
 
 export async function synthesize(profile, { text, format, signal, ...overrides }, transport = fetch) {
   const selection = { ...profile.selection, ...overrides }
+  if (profile.protocol === 'custom') return synthesizeCustom(profile, { text, format, signal, ...overrides }, transport)
   if (profile.protocol === 'tencent') return tencentSynthesize(profile, { text, format, signal }, selection, transport)
   if (profile.protocol === 'aliyun') {
     if (!['wav', 'mp3'].includes(format)) return fail('audio-format-unsupported', 400)
@@ -200,6 +268,18 @@ export async function synthesize(profile, { text, format, signal, ...overrides }
     signal.throwIfAborted()
     const data = Buffer.concat(parts)
     return { data: format === 'wav' ? pcmWav(data) : data, format }
+  }
+  if (profile.protocol === 'xiaomi') {
+    if (!['wav', 'mp3'].includes(format)) return fail('audio-format-unsupported', 400)
+    return synthesizeXiaomi(profile, text, format, selection, signal, transport)
+  }
+  if (profile.protocol === 'breeze') {
+    if (!['wav', 'mp3'].includes(format)) return fail('audio-format-unsupported', 400)
+    return synthesizeBreeze(profile, text, format, selection, signal, transport)
+  }
+  if (profile.protocol === 'doubao') {
+    if (!['wav', 'mp3'].includes(format)) return fail('audio-format-unsupported', 400)
+    return synthesizeDoubao(profile, text, format, selection, signal)
   }
   // PCM avoids upstream WAV variants and guarantees the host's required PCM WAV format.
   const upstream = format === 'wav' ? 'pcm' : 'mp3'
@@ -218,8 +298,12 @@ export async function synthesize(profile, { text, format, signal, ...overrides }
 /** Parses complete SSE records across arbitrary byte boundaries, with bounded buffering. */
 export async function* streamPcm(profile, { text, signal, ...overrides }, transport = fetch) {
   const selection = { ...profile.selection, ...overrides }
+  if (profile.protocol === 'custom') { yield* streamCustom(profile, { text, signal, ...overrides }, transport); return }
   if (profile.protocol === 'tencent') return fail('external-streaming-unsupported', 400)
   if (profile.protocol === 'aliyun') { yield* aliyunAudio(profile, { text, signal }, selection, 'pcm', transport); return }
+  if (profile.protocol === 'xiaomi') { yield* streamXiaomi(profile, text, selection, signal, transport); return }
+  if (profile.protocol === 'breeze') { yield* streamBreeze(profile, text, selection, signal, transport); return }
+  if (profile.protocol === 'doubao') { yield* streamDoubao(profile, text, selection, signal); return }
   const binary = BINARY_PROTOCOLS.has(profile.protocol)
   const response = await request(profile, speechResource(profile, selection, 'pcm', true), payload(profile, text, 'pcm', true, selection), signal, transport, { headers: speechHeaders(profile, selection) })
   const reader = response.body?.getReader()
@@ -326,11 +410,17 @@ function discoveryResult(results, kinds) {
 }
 
 export async function discover(profile, transport = fetch, signal = AbortSignal.timeout(20000)) {
-  if (profile.protocol === 'aliyun' || profile.protocol === 'tencent') {
+  if (profile.protocol === 'aliyun' || profile.protocol === 'tencent' || profile.protocol === 'custom') {
     signal.throwIfAborted()
     // These adapters have no implemented read-only account catalog API. Never
     // report static defaults as an authenticated connection or bill for a probe.
     return { connected: false, errors: [{ kind: 'models', code: 'external-catalog-unavailable' }, { kind: 'voices', code: 'external-catalog-unavailable' }] }
+  }
+  if (profile.protocol === 'xiaomi' || profile.protocol === 'doubao' || profile.protocol === 'breeze') {
+    signal.throwIfAborted()
+    // Built-in provider catalogs are fixed presets, not account queries.
+    const p = preset(profile.protocol)
+    return { models: p.models.map(({ id, name }) => ({ id, name })), voices: p.voices.map(({ id, name }) => ({ id, name })), connected: true, errors: [] }
   }
   if (profile.protocol === 'elevenlabs') {
     const results = await Promise.allSettled([

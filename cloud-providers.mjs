@@ -8,7 +8,10 @@ const hash = value => createHash('sha256').update(value).digest('hex')
 const hmac = (key, value) => createHmac('sha256', key).update(value).digest()
 
 export function credentialsReady(profile) {
-  if (!profile?.apiKey || (profile.protocol === 'tencent' && !profile.secretId)) return false
+  if (!profile) return false
+  // A local/custom endpoint may be unauthenticated; only the Base URL is required.
+  if (profile.protocol === 'custom') return !!String(profile.baseURL ?? '').trim()
+  if (!profile.apiKey || (profile.protocol === 'tencent' && !profile.secretId)) return false
   return profile.protocol !== 'aliyun' || !/your_workspace_id/iu.test(profile.baseURL)
 }
 

@@ -3,13 +3,14 @@ import { dirname } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { TtsProviderError } from './host-api.mjs'
 import { PROTOCOLS, endpoint, modelFeatures } from './protocols.mjs'
+import { normalizeCustom, validateCustomUrl } from './custom-provider.mjs'
 
 const invalid = () => { throw new TtsProviderError('adapter-config-invalid', undefined, 400) }
 const clone = value => structuredClone(value)
 const text = (value, limit = 200) => typeof value === 'string' && value.trim().length > 0 && value.length <= limit
 
 export function catalog(profile) {
-  return profile.models.map(model => ({ id: model.id, name: model.name, ...modelFeatures(profile.protocol, model),
+  return profile.models.map(model => ({ id: model.id, name: model.name, ...modelFeatures(profile.protocol, model, profile),
     streaming: profile.streaming && modelFeatures(profile.protocol, model).streaming,
     voices: profile.voices.filter(voice => !voice.modelIds?.length || voice.modelIds.includes(model.id)).map(({ id, name }) => ({ id, name })) }))
 }
@@ -27,7 +28,13 @@ export function normalizeConfig(input, previous = { profiles: [] }) {
     if (!raw || !text(raw.id, 100) || !/^[a-z0-9][a-z0-9._-]*$/u.test(raw.id) || !text(raw.name, 120)
       || !PROTOCOLS.includes(raw.protocol) || !text(raw.baseURL, 2048) || typeof raw.streaming !== 'boolean'
       || !Number.isSafeInteger(raw.maxTextLength) || raw.maxTextLength < 1 || raw.maxTextLength > 10000) invalid()
-    endpoint(raw.baseURL, 't2a_v2')
+    const custom = raw.protocol === 'custom' ? normalizeCustom(raw.custom) : undefined
+    if (raw.protocol === 'doubao') {
+      let url
+      try { url = new URL(raw.baseURL) } catch { invalid() }
+      if (!['wss:', 'ws:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) invalid()
+    } else if (custom) validateCustomUrl(raw.baseURL, custom.path)
+    else endpoint(raw.baseURL, 't2a_v2')
     const old = previous.profiles.find(item => item.id === raw.id)
     const apiKey = raw.apiKey === undefined ? old?.apiKey ?? '' : raw.apiKey
     if (typeof apiKey !== 'string' || apiKey.length > 8192 || /[\r\n]/u.test(apiKey)) invalid()
@@ -53,7 +60,8 @@ export function normalizeConfig(input, previous = { profiles: [] }) {
     })
     const profile = { id: raw.id, name: raw.name.trim(), protocol: raw.protocol, baseURL: raw.baseURL.trim(), apiKey: apiKey.trim(),
       ...(raw.protocol === 'tencent' || raw.secretId !== undefined || old?.secretId !== undefined ? { secretId: secretId.trim() } : {}),
-      streaming: raw.streaming, maxTextLength: raw.maxTextLength, models, voices }
+      streaming: raw.streaming, maxTextLength: raw.maxTextLength, models, voices,
+      ...(custom ? { custom } : {}) }
     // Empty catalogs can be saved while configuring, but cannot take over.
     profile.selection = models.length && voices.length ? validateSelection(profile, raw.selection) : { model: '', voice: '', speechInstruction: '' }
     return profile
