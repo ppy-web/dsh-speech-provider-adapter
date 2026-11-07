@@ -19,3 +19,23 @@ Use Node.js 24.9+ and pnpm. No compile step is required. Run `pnpm test` for pro
 Use two-space indentation, single quotes, and omitted semicolons. Import only the public `dsh-xiaomi-tts/host-api` contract; do not import host plugin internals or fall back to checkout-relative source paths. The local development dependency links to the sibling 音色工坊 checkout; runtime installations must provide the updated `dsh-xiaomi-tts` peer.
 
 Keep credentials in the profile-local store and out of logs, public state, error responses, and commits. Preserve AbortSignal propagation, bounded responses, revision checks, same-origin validation, and context-scoped cleanup. Keep browser UI strings in both locales. Tests must cover observable behavior, not source spelling or presentation details.
+
+## 发布 / Release
+
+发布使用 GitHub Actions + npm Trusted Publishing（OIDC）：不在本机保存 npm token，也不需要 OTP。首次需在 npm 包 `dsh-speech-provider-adapter` 的 Settings → Trusted Publisher 添加 GitHub Actions（组织 `ppy-web`、仓库 `dsh-speech-provider-adapter`、工作流 `release.yml`，Environment 留空）。
+
+正式版流程：
+
+1. 更新 `package.json` 的 `version`（不带 `-`，如 `0.1.1`）。
+2. 本地通过 `pnpm release:check` 与 `pnpm test`，提交并推送 `main`。
+3. 打标签并推送：`git tag vX.Y.Z && git push origin vX.Y.Z`。
+4. `.github/workflows/release.yml` 自动执行：校验 tag 与 `package.json` 版本一致 → 运行 `release:check` → `npm pack` → 防 `latest` 回退 → `npm publish --provenance --access public --tag latest`。
+
+预发布：版本号含 `-`（如 `0.1.1-next.0`）时，`tools/scripts/release-metadata.mjs` 自动推导为 `next` 渠道并发布到 `next`。
+
+注意：
+
+- tag 必须与 `package.json` 版本完全一致（`vX.Y.Z`），否则工作流拒绝发布。
+- 不能重复发布已存在的版本，否则报 `cannot publish over the previously published versions`。
+- 本插件无构建步骤；CI 的 `release-check` 只做语法/JSON 校验（CI 不安装 sibling 依赖），完整行为测试在本地 `pnpm test` 运行。
+- 手动兜底（仅当 CI 不可用时）：在仓库执行 `npm publish --tag latest`（需交互输入 OTP，不推荐）。
