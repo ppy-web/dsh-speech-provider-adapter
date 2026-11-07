@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="供应商适配器">
+  <defs>
+    <linearGradient id="whale" gradientUnits="userSpaceOnUse" x1="46" y1="44" x2="214" y2="220">
+      <stop offset="0" stop-color="#5b9cff"/>
+      <stop offset="0.55" stop-color="#57c9f5"/>
+      <stop offset="1" stop-color="#54e2df"/>
+    </linearGradient>
+  </defs>
+  <g fill="url(#whale)">
+    <path d="M60 184 C42 168 38 136 56 114 C74 92 110 84 142 94 C170 103 184 130 186 158 C202 150 212 136 212 120 C220 128 226 146 222 162 C232 166 238 178 236 192 C230 180 218 174 206 176 C204 190 192 202 178 204 C132 212 78 206 60 184 Z"/>
+    <g fill="none" stroke="url(#whale)" stroke-width="9" stroke-linecap="round">
+      <path d="M104 82 C98 72 98 62 104 54"/>
+      <path d="M124 76 C124 64 124 52 124 42"/>
+      <path d="M144 82 C150 72 150 62 144 54"/>
+    </g>
+  </g>
+  <circle cx="86" cy="140" r="8" fill="#ffffff"/>
+  <path d="M70 178 C92 192 132 192 154 176 C146 198 96 204 74 190 Z" fill="#ffffff" opacity="0.9"/>
+</svg>
