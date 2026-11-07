@@ -4,6 +4,7 @@ This is an independent DSH Web plugin, `dsh-speech-provider-adapter`.
 
 - `index.mjs` owns service registration and same-origin management routes.
 - `protocols.mjs` dispatches SenseAudio, OpenAI-compatible Speech, MiniMax, SiliconFlow, ElevenLabs, Fish Audio, Alibaba Cloud Bailian, and Tencent Cloud adapters. `cloud-providers.mjs` handles Bailian SSE and Tencent TC3 signing. Keep each provider's auth, PCM sample rate, endpoint versions, and model/voice catalog meanings explicit.
+- `custom-provider.mjs` implements the fully custom local-model protocol: bounded JSON request-body templates, custom headers, response audio extraction (binary / JSON base64 / JSON hex), and PCM/WAV/MP3 handling. Keep templates and headers validated (placeholder allowlist, 64 KB template, 32 MB audio) and never eval templates.
 - `store.mjs` owns profile-local persistence, revisions, catalog validation, and key masking.
 - `client.js` mounts `ui/` inside the host's `plugins.bundle.config` settings slot.
 - `ui/api.js` is the shared JSON management transport: browser writes carry the same-origin `Origin`, while Desktop forwards validated requests without origin metadata, so writes also send `x-dsh-speech-adapter: 1` and the host accepts origin-less writes only with that header.
