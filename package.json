@@ -27,7 +27,9 @@
     "README.md"
   ],
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "release:check": "node tools/scripts/release-check.mjs",
+    "pack:check": "npm pack --dry-run"
   },
   "engines": {
     "node": ">=24.9.0",

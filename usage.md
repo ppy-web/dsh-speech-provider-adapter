@@ -127,6 +127,15 @@ Base URL 支持服务根地址、已有 `/v1` 和反向代理前缀，不接受 
 
 协议调度位于 `protocols.mjs`，百炼 SSE 和腾讯云签名/合成实现位于 `cloud-providers.mjs`，持久化和目录校验位于 `store.mjs`，宿主注册与管理路由位于 `index.mjs`，管理页在 `ui/`。替换或扩展上游时保留请求取消、音频格式、大小上限及稳定错误约定。主插件接口详见音色工坊仓库的 `open-api.md`；本地相邻目录为 `../dsh-plugin-xiaomi-mimo-tts/open-api.md`。
 
+## 发布（自动发包）
+
+发布与主包一致，使用 GitHub Actions + npm Trusted Publishing（OIDC），无需在本机保存 npm token 或输入 OTP：
+
+1. 首次配置：在 npm 包 `dsh-speech-provider-adapter` 的 Settings → Trusted Publisher 中添加 GitHub Actions：组织 `ppy-web`、仓库 `dsh-speech-provider-adapter`、工作流 `release.yml`（Environment 留空）。
+2. 发布正式版：更新 `package.json` 版本（如 `0.1.1`）并提交，然后打标签并推送：`git tag v0.1.1 && git push origin v0.1.1`。工作流会校验标签与版本一致、执行 `release:check`、打包并 `npm publish --provenance --tag latest`。
+3. 预发布：版本号含 `-`（如 `0.1.1-next.0`）自动发布到 `next` 标签；`latest` 不会被降级。
+4. 本地校验：`pnpm release:check`（语法/JSON）、`pnpm test`（完整行为测试）、`pnpm pack:check`（打包预览）。
+
 ## English
 
 This independent DSH Web plugin manages SenseAudio, OpenAI-compatible Speech, MiniMax, SiliconFlow, ElevenLabs, Fish Audio, Alibaba Cloud Bailian, Tencent Cloud and fully custom local-model profiles. Presets are documentation-based examples, not verified provider accounts. Fish Audio starts without a voice ID: refresh workspace voices or add a reference ID manually. Bailian uses a workspace-specific regional endpoint and API Key, with Qwen-Audio-TTS HTTP SSE; Tencent uses SecretId / SecretKey and TC3 signing for TextToVoice, with complete 16 kHz audio only and a conservative 150-character limit. Their catalogs are preset/manual and connection tests/refresh are disabled. Open its configuration in the DSH plugin manager, configure a profile, choose it as active, enable takeover, and save. The page supports English. 音色工坊 reuses its existing model/voice/instruction controls; selections remain drafts until Save and are persisted by 供应商适配器. Disable takeover to restore 音色工坊's built-in configuration.
