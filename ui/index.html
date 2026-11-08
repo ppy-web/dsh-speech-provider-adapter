@@ -29,6 +29,12 @@
             <label class="provider-select field"><span class="sr-only" data-i18n="editingProvider">正在编辑的供应商</span><select id="profile-select" disabled></select></label>
             <nav id="profiles" aria-labelledby="profiles-label"></nav>
           </div>
+          <section class="takeover-card card" aria-labelledby="takeover-label">
+            <div class="takeover-heading"><h2 id="takeover-label" data-i18n="takeover">接管语音合成</h2></div>
+            <button id="takeover" type="button" class="takeover-toggle" role="switch" aria-checked="false" aria-labelledby="takeover-label" data-state="off" data-focus-key="takeover-switch" disabled>启用接管</button>
+            <p id="takeover-status" role="status" aria-live="polite"></p>
+            <p class="field-description" data-i18n="takeoverHint">全局接管开关；接管状态与当前供应商在保存后生效。</p>
+          </section>
         </aside>
         <section id="editor" aria-label="Provider configuration" aria-busy="true"></section>
       </div>

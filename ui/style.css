@@ -117,11 +117,16 @@ h3 { font-size: 14px; font-weight: 600 }
 .summary-sub { font-size: 11px; color: var(--muted-foreground); overflow-wrap: anywhere }
 .apply-body { display: flex; flex-direction: column; gap: 16px }
 .takeover-status { font-size: 12px; color: var(--muted-foreground); overflow-wrap: anywhere }
-.takeover-row { display: flex; align-items: center; justify-content: space-between; gap: 16px }
+.takeover-toggle { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 38px; padding: 8px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--muted); color: var(--muted-foreground); font-size: 13px; font-weight: 600; cursor: pointer; transition: background-color .15s ease, color .15s ease, border-color .15s ease }
+.takeover-toggle::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; opacity: .6 }
+.takeover-toggle[data-state=on] { background: var(--primary); border-color: var(--primary); color: var(--primary-foreground) }
+.takeover-toggle[data-state=on]::before { opacity: 1 }
+.takeover-toggle:not(:disabled):hover { border-color: var(--ring) }
+.takeover-toggle:disabled { opacity: .5; cursor: not-allowed }
 .apply-actions { justify-content: flex-end }
 .overview-card .card-header { padding-bottom: 8px }
 .overview-body { display: flex; flex-direction: column; gap: 20px; padding: 0 24px 20px }
-.overview-switches { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px }
+.overview-switches { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px }
 .overview-switch { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; border: 1px solid var(--border); border-radius: var(--radius); min-width: 0 }
 .overview-switch .switch-text { min-width: 0 }
 .overview-switch .switch-label { font-size: 13px; font-weight: 500 }

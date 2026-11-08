@@ -12,7 +12,7 @@
 
 管理入口：DSH 插件管理 → 供应商适配器 → 配置，表单直接显示在宿主内部。接管后，音色工坊密钥区域的“管理供应商”也通过 DSH 内部导航打开该配置区，不新建标签页。表单提供中文、English 和系统深浅主题；`/plugins/speech-provider-adapter` 保留为可选直达地址。
 
-页面按“连接供应商 → 配置模型列表 → 配置音色列表 → 保存与接管”四步条组织，可点击步骤条切换且保留未保存的配置。连接步骤提供测试连接与“拉取模型与音色”，模型和音色步骤从供应商接口拉取目录（按 ID 去重追加、不覆盖已修改的条目），也可手动添加和修改自定义条目，并支持按名称或 ID 搜索。每个列表用单选项标记当前使用的模型/音色，密钥框可临时显示或隐藏当前输入。顶部保存栏在滚动时保留；接管开关、设为当前供应商以及表单编辑都在“保存与接管”步骤确认并在保存后生效。
+页面按“连接供应商 → 配置模型列表 → 配置音色列表 → 保存与接管”四步条组织，可点击步骤条切换且保留未保存的配置。连接步骤提供测试连接与“拉取模型与音色”，模型和音色步骤从供应商接口拉取目录（按 ID 去重追加、不覆盖已修改的条目），也可手动添加和修改自定义条目，并支持按名称或 ID 搜索。每个列表用单选项标记当前使用的模型/音色，密钥框可临时显示或隐藏当前输入。顶部保存栏在滚动时保留；左侧提供全局“接管语音合成”按钮（统一控制所有供应商，点击后按钮底色变化示意开启/关闭），设为当前供应商以及表单编辑都在“保存与接管”步骤确认并在保存后生效。
 
 宽设置区左侧列出供应商并支持搜索，窄设置区改用下拉选择，正在编辑的配置与实际生效的供应商分别标识。模型与音色分列在各自的步骤中，支持按名称或 ID 搜索，长列表通过“显示更多”继续加载；模型能力与音色适用范围按需展开。流式、单次文本上限、语音指令与删除配置位于“保存与接管”步骤，目录筛选不会修改保存的条目。
 
@@ -98,7 +98,7 @@ ElevenLabs 音色与 Fish Audio 工作区音色按分页读取，去重后最多
 1. 新增配置，填写名称，选择协议，并设置相应地址、密钥、模型和音色。切换协议只更改请求格式，不会清空已有地址或目录。
 2. “测试连接”查询目录，不执行合成。“拉取模型/音色”按 ID 去重追加返回结果，不覆盖已修改条目；在目录编辑区添加、重命名或移除条目。空白/重复 ID、无效选择在保存时拒绝。
 3. OpenAI 兼容服务没有统一的公共系统音色目录，适配器提供可编辑的常用音色初始列表；按目标服务实际支持的 ID 配置。MiniMax 模型目录无法查询时保留预设或手动模型，音色查询可独立成功。目录测试成功不保证所有模型均有合成权限。
-4. “设为当前供应商”选择 供应商适配器 当前配置，打开接管开关，点击“保存更改”。供应商切换和接管开关也遵循保存机制。
+4. 左侧“接管语音合成”按钮是全局开关（影响所有供应商），点击后按钮底色变化示意开启/关闭；“设为当前供应商”选择当前配置，点击“保存更改”生效。供应商切换和接管状态也遵循保存机制。
 5. 音色工坊 中模型、音色、指令切换先形成草稿，点击现有保存按钮写入 供应商适配器。外部配置发生变化后保存旧草稿会被拒绝，放弃草稿后读取最新选择。音色工坊 的内置配置不参与 供应商适配器 保存。
 
 | 协议 | 地址示例 | 合成 | 目录 | 指令与标签 |
@@ -140,7 +140,7 @@ Base URL 支持服务根地址、已有 `/v1` 和反向代理前缀，不接受 
 
 This independent DSH Web plugin manages SenseAudio, OpenAI-compatible Speech, MiniMax, SiliconFlow, ElevenLabs, Fish Audio, Alibaba Cloud Bailian, Tencent Cloud and fully custom local-model profiles. Presets are documentation-based examples, not verified provider accounts. Fish Audio starts without a voice ID: refresh workspace voices or add a reference ID manually. Bailian uses a workspace-specific regional endpoint and API Key, with Qwen-Audio-TTS HTTP SSE; Tencent uses SecretId / SecretKey and TC3 signing for TextToVoice, with complete 16 kHz audio only and a conservative 150-character limit. Their catalogs are preset/manual and connection tests/refresh are disabled. Open its configuration in the DSH plugin manager, configure a profile, choose it as active, enable takeover, and save. The page supports English. 音色工坊 reuses its existing model/voice/instruction controls; selections remain drafts until Save and are persisted by 供应商适配器. Disable takeover to restore 音色工坊's built-in configuration.
 
-Settings use a four-step flow: Connect provider → Configure models → Configure voices → Save and takeover. Steps are clickable and retain unsaved drafts. Models and voices are fetched from the provider's API when available (merged by ID, keeping existing entries) and can also be added manually; each list marks the active model/voice with a radio button. Streaming, text limits, instructions and deletion live in the final step. Narrow settings surfaces use a provider dropdown. Long lists support name/ID search and Show more; capabilities and model scope expand on demand.
+Settings use a four-step flow: Connect provider → Configure models → Configure voices → Save and takeover. Steps are clickable and retain unsaved drafts. Models and voices are fetched from the provider's API when available (merged by ID, keeping existing entries) and can also be added manually; each list marks the active model/voice with a radio button. A global takeover button in the left sidebar controls all profiles, and its background shows on/off. Streaming, text limits, instructions and deletion live in the final step. Narrow settings surfaces use a provider dropdown. Long lists support name/ID search and Show more; capabilities and model scope expand on demand.
 
 The adapter ships its own bundle patch and requires the updated 音色工坊, Web server and Settings services. No separate build is required for 供应商适配器. The settings form stays inside DSH; 音色工坊 opens it through the host plugin navigation. Credentials remain in a profile-local JSON file; browsers receive only key-presence metadata. Connection tests query catalogs without generating speech. Full audio and HTTP PCM streaming are supported. The custom local-model protocol supports arbitrary JSON body templates and custom request headers; WebSocket, URL audio downloads and non-JSON bodies remain outside this plugin.
 

@@ -65,6 +65,7 @@ export function mountManager(surface) {
     $('provider-search').disabled = busy || !state?.profiles.length
     $('add').replaceChildren(icon('plus'), document.createTextNode(t('add')))
     $('profile-select').disabled = busy || !state?.profiles.length
+    $('takeover').disabled = busy || !state?.profiles.length
     $('status').textContent = t(busy ? busyKind : dirty ? 'dirty' : 'upToDate')
     $('status').dataset.dirty = String(dirty)
     $('status').dataset.busy = String(busy)
@@ -402,8 +403,6 @@ export function mountManager(surface) {
     const streamingSupported = profile.protocol !== 'tencent' && !(profile.protocol === 'custom' && !(profile.custom?.audioFormat === 'pcm' && profile.custom?.sampleRate === 24000))
     const streamingInput = node('input', { type: 'checkbox', role: 'switch', checked: streamingSupported && profile.streaming, disabled: busy || !streamingSupported, 'aria-label': t('streaming'), 'data-focus-key': 'streaming-switch',
       onchange: event => { profile.streaming = event.target.checked; changed() } })
-    const takeoverInput = node('input', { type: 'checkbox', role: 'switch', checked: state.takeoverEnabled, disabled: busy, 'aria-label': t('takeover'), 'data-focus-key': 'takeover-switch',
-      onchange: event => { state.takeoverEnabled = event.target.checked; if (event.target.checked && !state.activeId) state.activeId = profile.id; changed(); render() } })
     const deleteButton = button(t(deleteId === profile.id ? 'confirmDelete' : 'delete'), () => {
       if (deleteId !== profile.id) { deleteId = profile.id; render(); return }
       state.profiles = state.profiles.filter(item => item.id !== profile.id)
@@ -422,9 +421,7 @@ export function mountManager(surface) {
           summaryItem(t('voice'), voice?.name ?? t('missingValue'), voice?.id),
           summaryItem(t('catalog'), t('catalogCount', { models: profile.models.length, voices: profile.voices.length }))),
         fields,
-        node('div', { class: 'overview-switches' },
-          switchRow(t('streaming'), streamingInput),
-          switchRow(t('takeover'), takeoverInput, takeoverStatusText()))),
+        node('div', { class: 'overview-switches' }, switchRow(t('streaming'), streamingInput))),
       node('div', { class: 'card-footer overview-actions' },
         node('div', { class: 'actions' }, ...(deleteId === profile.id ? [button(t('cancel'), () => { deleteId = null; render() })] : []), deleteButton),
         node('div', { class: 'actions' },
@@ -483,6 +480,11 @@ export function mountManager(surface) {
     const languageTarget = surface.host ?? document.documentElement
     languageTarget.lang = language === 'zh' ? 'zh-CN' : 'en'
     $('language').value = language
+    const takeoverOn = !!state?.takeoverEnabled
+    $('takeover').dataset.state = takeoverOn ? 'on' : 'off'
+    $('takeover').setAttribute('aria-checked', String(takeoverOn))
+    $('takeover').textContent = t(takeoverOn ? 'takeoverOn' : 'takeoverOff')
+    $('takeover-status').textContent = takeoverOn === !!accepted?.takeoverEnabled ? takeoverStatusText() : t('takeoverPending')
     $('profile-select').setAttribute('aria-label', t('editingProvider'))
     $('provider-search').placeholder = t('searchProviders')
     $('editor').setAttribute('aria-label', t('editor'))
@@ -525,6 +527,12 @@ export function mountManager(surface) {
   $('provider-search').oninput = event => { profileSearch = event.target.value; renderProfiles() }
   $('profile-select').dataset.focusKey = 'profile-select'
   $('profile-select').onchange = event => chooseProfile(event.target.value)
+  $('takeover').onclick = () => {
+    if (busy || !state) return
+    state.takeoverEnabled = !state.takeoverEnabled
+    if (state.takeoverEnabled && !state.activeId) state.activeId = selected || state.profiles[0]?.id || ''
+    changed(); render()
+  }
   $('add').onclick = () => {
     $('templates').hidden = !$('templates').hidden
     $('add').setAttribute('aria-expanded', String(!$('templates').hidden))
