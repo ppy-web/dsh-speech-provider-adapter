@@ -1,15 +1,24 @@
 import { node, tabs, combobox, icon } from './components.js'
+import { createManagerApi } from './api.js'
 
 const root = new URL('./', import.meta.url)
-const protocols = [{ id: 'senseaudio', name: 'SenseAudio（商汤）' }, { id: 'openai', name: 'OpenAI compatible（OpenAI 兼容）' }, { id: 'minimax', name: 'MiniMax（稀宇科技）' },
-  { id: 'siliconflow', name: 'SiliconFlow（硅基流动）' }, { id: 'elevenlabs', name: 'ElevenLabs' }, { id: 'fish', name: 'Fish Audio' },
-  { id: 'aliyun', name: 'Alibaba Cloud Bailian（阿里云百炼）' }, { id: 'tencent', name: 'Tencent Cloud（腾讯云）' }]
+const protocols = [
+  { id: 'senseaudio', name: 'SenseAudio（商汤）', keyURL: 'https://senseaudio.cn/api-platform/api-key' },
+  { id: 'openai', name: 'OpenAI compatible（OpenAI 兼容）', keyURL: 'https://platform.openai.com/api-keys' },
+  { id: 'minimax', name: 'MiniMax（稀宇科技）', keyURL: 'https://platform.minimax.io/console/keys' },
+  { id: 'siliconflow', name: 'SiliconFlow（硅基流动）', keyURL: 'https://cloud.siliconflow.cn/account/ak' },
+  { id: 'elevenlabs', name: 'ElevenLabs', keyURL: 'https://elevenlabs.io/app/api/api-keys' },
+  { id: 'fish', name: 'Fish Audio', keyURL: 'https://fish.audio/app/developers/get-started/' },
+  { id: 'aliyun', name: 'Alibaba Cloud Bailian（阿里云百炼）', keyURL: 'https://bailian.console.aliyun.com/cn-beijing/model/settings/api-key' },
+  { id: 'tencent', name: 'Tencent Cloud（腾讯云）', keyURL: 'https://console.cloud.tencent.com/cam/capi' },
+]
 const manualCatalog = profile => ['aliyun', 'tencent'].includes(profile.protocol)
 
 /** Mount in the host settings surface; disposal aborts requests and removes window listeners. */
 export function mountManager(surface) {
   const controller = new AbortController()
   const { signal } = controller
+  const api = createManagerApi(root, signal)
   let language = localStorage.getItem('dsh-speech-adapter-language') ?? (navigator.language.startsWith('zh') ? 'zh' : 'en')
   if (!['zh', 'en'].includes(language)) language = 'en'
   let words = {}, state, accepted, selected = '', busy = true, busyKind = 'loading', dirty = false, deleteId = null
@@ -45,14 +54,6 @@ export function mountManager(surface) {
       : accepted.takeoverActive ? t(accepted.ready ? 'servingProvider' : 'notReadyProvider', { name: active?.name ?? '' }) : t('inactive')
   }
   function changed() { dirty = true; toolbar() }
-  async function api(action, body) {
-    const response = await fetch(new URL(`api/${action}`, root), { method: body === undefined ? 'GET' : 'POST',
-      headers: body === undefined ? {} : { 'content-type': 'application/json' }, ...(body === undefined ? {} : { body: JSON.stringify(body) }), cache: 'no-store', signal })
-    const result = await response.json()
-    signal.throwIfAborted()
-    if (!response.ok) throw new Error(result.error ?? 'external-upstream-failed')
-    return result
-  }
   async function action(work, kind = 'working') {
     if (busy || !state) return
     busy = true; busyKind = kind; message(); render()
@@ -299,8 +300,13 @@ export function mountManager(surface) {
         node('div', { class: 'actions' }, ...protocols.map(protocol => button(protocol.name, () => addProfile(protocol.id), { disabled: busy || !state })))))
     } else {
       const current = state.activeId === profile.id
+      const protocol = protocols.find(item => item.id === profile.protocol)
+      const keyLink = node('a', { class: 'provider-key-link', href: protocol.keyURL, target: '_blank', rel: 'noopener noreferrer',
+        title: t(profile.protocol === 'openai' ? 'openaiKeyLinkHint' : 'apiKeyLinkHint', { provider: protocol.name }), 'data-focus-key': 'provider-api-key' },
+      t(profile.protocol === 'tencent' ? 'getCloudKeys' : 'getApiKey'), icon('external'))
       const header = node('div', { class: 'profile-heading' }, node('div', {}, node('h2', { id: 'profile-name' }, profile.name || t('unnamed')), node('p', { class: 'profile-context' }, t(current ? 'editingCurrent' : 'editingOther'))),
-        button(t(current ? state.activeId !== accepted?.activeId ? 'currentPending' : 'current' : 'activate'), () => { state.activeId = profile.id; changed(); render() }, { disabled: busy || current, 'data-focus-key': 'activate-profile' }))
+        node('div', { class: 'actions' }, keyLink,
+          button(t(current ? state.activeId !== accepted?.activeId ? 'currentPending' : 'current' : 'activate'), () => { state.activeId = profile.id; changed(); render() }, { disabled: busy || current, 'data-focus-key': 'activate-profile' })))
       const items = ['connection', 'selection', 'catalogs', 'advanced'].map(id => ({ id, name: t(id) }))
       const navigation = tabs(items, editorTab, id => { editorTab = id; tabByProfile.set(profile.id, id); render() }, t('editorSections'), busy)
       const content = editorTab === 'selection' ? selectionFields(profile) : editorTab === 'catalogs' ? catalogs(profile) : editorTab === 'advanced' ? advancedFields(profile) : connectionFields(profile)

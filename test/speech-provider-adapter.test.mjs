@@ -9,6 +9,7 @@ import { AdapterStore, normalizeConfig } from '../store.mjs'
 import { createProvider, apply, ROOT } from '../index.mjs'
 import { preset, endpoint, synthesize, streamPcm, discover, modelFeatures } from '../protocols.mjs'
 import { TtsProviderError } from '../host-api.mjs'
+import { createManagerApi } from '../ui/api.js'
 const pcm = Buffer.from([1, 0, 2, 0, 3, 0, 4, 0])
 const json = value => new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } })
 const profile = protocol => ({ ...preset(protocol), id: protocol, apiKey: 'private-test-key' })
@@ -242,7 +243,26 @@ test('management routes enforce same origin, mask secrets, reject stale writes a
   })
   try {
     assert.equal((await fetch(origin + ROOT)).status, 200)
-    for (const headers of [{}, { origin: 'https://foreign.test' }, { origin, 'sec-fetch-site': 'cross-site' }]) assert.equal((await post({}, headers)).status, 403)
+    assert.equal((await fetch(origin + ROOT + '/api.js')).status, 200)
+    for (const headers of [{}, { 'x-dsh-speech-adapter': 'wrong' }, { 'sec-fetch-site': 'same-origin' },
+      ...['https://foreign.test', 'null', '', 'not-an-origin', 'dsh-app://app'].map(origin => ({ origin, 'x-dsh-speech-adapter': '1' })),
+      ...['cross-site', 'same-site'].flatMap(site => [{ origin, 'sec-fetch-site': site, 'x-dsh-speech-adapter': '1' }, { 'sec-fetch-site': site, 'x-dsh-speech-adapter': '1' }])]) {
+      for (const action of ['preset', 'save', 'refresh', 'test']) {
+        const denied = await fetch(origin + ROOT + '/api/' + action, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: '{}' })
+        assert.equal(denied.status, 403)
+        assert.equal((await denied.json()).error, 'cross-origin-denied')
+      }
+    }
+    const signal = new AbortController().signal
+    const browser = createManagerApi(new URL(ROOT + '/', origin), signal, (url, init) => fetch(url, { ...init, headers: { ...init.headers, origin } }))
+    // forwardWebRequest in DSH desktop removes Origin and Sec-Fetch-Site.
+    const desktop = createManagerApi(new URL(ROOT + '/', origin), signal)
+    for (const api of [browser, desktop]) {
+      const draft = await api('preset', { protocol: 'openai' })
+      assert.equal(draft.protocol, 'openai')
+      assert.equal(draft.models.some(model => model.id === draft.selection.model), true)
+      assert.equal((await api('state')).profiles.length, 0)
+    }
     const saved = await post({ ...config(profile('senseaudio')), revision: 0 })
     assert.equal(saved.status, 200)
     const state = await saved.json()
@@ -257,6 +277,21 @@ test('management routes enforce same origin, mask secrets, reject stale writes a
     assert.equal(service.currentProvider(), 'xiaomi')
     const disk = JSON.parse(await readFile(join(dir, 'speech-provider-adapter/providers.json'), 'utf8'))
     assert.equal(disk.profiles[0].selection.voice, 'male_0004_a')
+    const draft = { ...await desktop('preset', { protocol: 'openai' }), id: 'desktop-provider' }
+    const before = await desktop('state')
+    const added = await desktop('save', { ...before, profiles: [...before.profiles, draft] })
+    assert.equal(added.profiles.some(item => item.id === draft.id), true)
+    assert.equal(added.takeoverActive, false)
+    const restored = await new AdapterStore(join(dir, 'speech-provider-adapter/providers.json')).load()
+    assert.equal(restored.state.profiles.find(item => item.id === draft.id).protocol, 'openai')
+    assert.equal(restored.state.profiles.find(item => item.id === 'senseaudio').apiKey, 'private-test-key')
+    await assert.rejects(desktop('save', before), { message: 'adapter-config-changed' })
+    ctx.settings.writable = false
+    await assert.rejects(desktop('save', added), { message: 'settings-read-only' })
+    for (const action of ['refresh', 'test']) await assert.rejects(desktop(action, { revision: added.revision, profile: draft }), { message: 'api-key-not-configured' })
+    const invalidType = await fetch(origin + ROOT + '/api/save', { method: 'POST', headers: { 'x-dsh-speech-adapter': '1', 'content-type': 'text/plain' }, body: '{}' })
+    assert.equal(invalidType.status, 415)
+    assert.equal((await invalidType.json()).error, 'invalid-content-type')
   } finally {
     for (const dispose of cleanup.reverse()) await dispose?.()
     server.closeAllConnections(); await new Promise(resolve => server.close(resolve))

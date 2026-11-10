@@ -1,6 +1,6 @@
 {
   "name": "dsh-speech-provider-adapter",
-  "version": "0.1.0-next.0",
+  "version": "0.1.0-next.1",
   "type": "module",
   "description": "供应商适配器示例插件：为音色工坊管理自定义语音供应商、模型与音色",
   "license": "MIT",
@@ -17,6 +17,8 @@
     "client.js",
     "cordis.patch.yml",
     "ui",
+    "scripts/clear-local-links.mjs",
+    "clear-local-links.cmd",
     "locale",
     "doc/sense.md",
     "docs/images",

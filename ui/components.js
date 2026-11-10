@@ -12,7 +12,7 @@ export function node(tag, attrs = {}, ...children) {
 }
 
 export function icon(kind) {
-  const paths = { chevrons: ['m8 9 4-4 4 4', 'm8 15 4 4 4-4'], check: ['m5 12 4 4L19 6'], plus: ['M12 5v14', 'M5 12h14'] }
+  const paths = { chevrons: ['m8 9 4-4 4 4', 'm8 15 4 4 4-4'], check: ['m5 12 4 4L19 6'], plus: ['M12 5v14', 'M5 12h14'], external: ['M15 3h6v6', 'M21 3 10 14', 'M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5'] }
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   for (const [name, value] of Object.entries({ viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': '1.75', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true', 'data-icon': 'inline-end' })) svg.setAttribute(name, value)
   for (const d of paths[kind] ?? []) { const path = document.createElementNS(svg.namespaceURI, 'path'); path.setAttribute('d', d); svg.append(path) }

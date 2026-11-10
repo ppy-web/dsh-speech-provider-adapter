@@ -92,6 +92,8 @@ h3 { font-size: 14px; font-weight: 600 }
 .profile-heading { display: flex; gap: 16px; justify-content: space-between; align-items: center; flex-wrap: wrap }
 .profile-heading > div:first-child { min-width: 0; flex: 1 1 220px }
 .profile-heading h2 { font-size: 18px; overflow-wrap: anywhere }
+.provider-key-link { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding-block: 7px; color: var(--foreground); font-size: 13px; font-weight: 500; text-decoration: none; white-space: nowrap }
+.provider-key-link:hover { text-decoration: underline; text-underline-offset: 3px }
 .profile-context { margin-top: 5px; font-size: 12px; color: var(--muted-foreground) }
 .tabs-list { display: flex; gap: 4px; background: var(--muted); border-radius: 7px; padding: 4px; width: fit-content; max-width: 100%; flex-wrap: wrap }
 .tabs-list button { border: 0; background: transparent; color: var(--muted-foreground); padding: 6px 12px; min-height: 32px }
@@ -208,5 +210,5 @@ button.input-addon { border: 0; background: transparent; min-height: 28px; font-
   .empty { padding: 24px 16px }
 }
 @media (max-width: 760px) { .top, .manager-shell { width: calc(100% - 32px) } }
-@media (pointer: coarse) { button, input:not([type=checkbox]), select, .check, .entry-options > summary { min-height: 44px } }
+@media (pointer: coarse) { button, input:not([type=checkbox]), select, .check, .entry-options > summary, .provider-key-link { min-height: 44px } }
 @media (prefers-reduced-motion: reduce) { *, *::before { transition: none !important } }

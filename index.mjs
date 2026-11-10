@@ -63,7 +63,11 @@ export async function readBody(req) {
 
 export function sameOrigin(req, mutation = false) {
   if (['cross-site', 'same-site'].includes(String(req.headers['sec-fetch-site']))) return false
-  if (!req.headers.origin) return !mutation
+  if (req.headers.origin === undefined) {
+    // The desktop shell checks the app origin, then strips browser origin metadata.
+    // A custom header keeps origin-less writes unavailable to cross-site HTML forms.
+    return !mutation || (req.headers['sec-fetch-site'] === undefined && req.headers['x-dsh-speech-adapter'] === '1')
+  }
   try { const origin = new URL(req.headers.origin); return ['http:', 'https:'].includes(origin.protocol) && origin.host === req.headers.host } catch { return false }
 }
 
@@ -89,7 +93,7 @@ export async function apply(ctx, config) {
     return () => { disposed = true; store.closed = true; for (const controller of requests) controller.abort(); off(); unregister?.(); unregister = null }
   })
   const publicState = () => ({ ...store.publicState(), takeoverActive: unregister !== null, ready: unregister !== null && provider.getSnapshot().ready, takeoverError })
-  const files = new Map([['', ['index.html', 'text/html; charset=utf-8']], ['/app.js', ['app.js', 'text/javascript; charset=utf-8']], ['/components.js', ['components.js', 'text/javascript; charset=utf-8']], ['/standalone.js', ['standalone.js', 'text/javascript; charset=utf-8']], ['/style.css', ['style.css', 'text/css; charset=utf-8']],
+  const files = new Map([['', ['index.html', 'text/html; charset=utf-8']], ['/app.js', ['app.js', 'text/javascript; charset=utf-8']], ['/api.js', ['api.js', 'text/javascript; charset=utf-8']], ['/components.js', ['components.js', 'text/javascript; charset=utf-8']], ['/standalone.js', ['standalone.js', 'text/javascript; charset=utf-8']], ['/style.css', ['style.css', 'text/css; charset=utf-8']],
     ['/locale/zh.json', ['../locale/zh.json', 'application/json; charset=utf-8']], ['/locale/en.json', ['../locale/en.json', 'application/json; charset=utf-8']]])
   for (const [suffix, [file, type]] of files) {
     const data = await readFile(new URL(`./ui/${file}`, import.meta.url))

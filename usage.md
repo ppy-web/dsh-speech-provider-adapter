@@ -12,6 +12,8 @@
 
 管理入口：DSH 插件管理 → 供应商适配器 → 配置，表单直接显示在宿主内部。接管后，音色工坊密钥区域的“管理供应商”也通过 DSH 内部导航打开该配置区，不新建标签页。表单提供中文、English 和系统深浅主题；`/plugins/speech-provider-adapter` 保留为可选直达地址。
 
+每个供应商标题旁提供“去获取 API Key”外链，指向对应平台的官方密钥创建或管理入口；腾讯云显示“去获取云 API 密钥”，用于获取 SecretId / SecretKey。链接在新标签页打开，桌面端由系统浏览器打开。Fish Audio 入口为开发者入门页，登录后可在其中获取 API Key。OpenAI 兼容协议的入口指向 OpenAI 官方平台；使用其他兼容服务时，请前往该服务自己的平台获取密钥。百炼入口默认北京地域，其他地域请在控制台切换。
+
 页面使用“连接设置”“模型与音色”“目录管理”和“高级设置”四个标签，切换标签保留未保存的配置。连接设置底部提供测试连接，模型与音色支持按名称或 ID 搜索选择及刷新目录，密钥框可临时显示或隐藏当前输入。顶部保存栏在滚动时保留，侧栏接管区单独显示实际使用的供应商；接管开关、设为当前供应商以及表单编辑均需保存才生效。
 
 宽设置区左侧列出供应商并支持搜索，窄设置区改用下拉选择，正在编辑的配置与实际生效的供应商分别标识。目录管理可在模型、音色之间切换，按名称或 ID 搜索，长列表通过“显示更多”继续加载；模型能力和音色适用模型按需展开。流式、单次文本上限及删除配置位于“高级设置”，目录筛选不会修改保存的条目。
@@ -20,11 +22,11 @@
 
 ## 本地安装
 
-使用 npm 预发布包时，在同一宿主实例安装匹配版本：
+使用 npm 包时，在同一宿主实例安装两个插件：
 
 ```powershell
-dsh plugin --profile web add dsh-xiaomi-tts@5.2.0-next.0
-dsh plugin --profile web add dsh-speech-provider-adapter@0.1.0-next.0
+dsh plugin --profile web add dsh-xiaomi-tts@latest
+dsh plugin --profile web add dsh-speech-provider-adapter@latest
 ```
 
 以下为源码开发的本地链接方式。
@@ -44,6 +46,8 @@ dsh plugin --profile web add "link:E:/personal/Dsh/dsh-speech-provider-adapter"
   name: dsh-speech-provider-adapter
   config: {}
 ```
+
+从本地链接切换回 npm 包时，Windows 用户可双击仓库中的 `clear-local-links.cmd`，或运行 `node scripts/clear-local-links.mjs`。脚本清理 `web` profile 中供应商适配器的安装记录、本地覆盖和残留目录，备份修改过的配置，保留音色工坊、源码和供应商配置。完成后按脚本提示重新安装适配器；如设置了 `DSH_HOME`，脚本使用该目录。
 
 供应商适配器 依赖 `speechSynthesis`、`webServer`、`settings` 服务。仅通过公开入口 `dsh-xiaomi-tts/host-api` 使用类型契约和错误类，不读取音色工坊的内部实现或构建目录。旧 npm 版 音色工坊 若没有本次目录与选择接口，需先安装当前构建。
 
@@ -109,7 +113,7 @@ Base URL 支持服务根地址、已有 `/v1` 和反向代理前缀，不接受 
 
 供应商适配器 默认将 JSON 配置保存至当前 profile 的 `speech-provider-adapter/providers.json`，路径依据 `settings.documentPath`。可通过组件的普通 `storagePath` 配置指定其他文件；一份文件只交给一个 供应商适配器 实例使用。写入采用串行、修订检查和临时文件替换，浏览器只接收 `keyConfigured` 和适用时的 `secretIdConfigured`，不返回已保存的 API Key、SecretId 或 SecretKey。腾讯云 SecretKey 复用存储字段 `apiKey`，SecretId 使用 `secretId`；其他协议存储结构兼容。输入留空保留原值，显式清除才删除。备份此配置时按包含凭据的文件管理。
 
-所有管理端点仅供同源页面使用，写操作要求 Origin、JSON 和当前 revision；沿用宿主访问控制，部署到公网时保护整个宿主。只读 profile 拒绝保存。客户端原始异常、上游正文和密钥不会进入错误响应；上游请求不自动重试，取消和插件卸载会终止读取。刷新失败保留已有目录；不会偷偷换回内置云端供应商。
+所有管理端点仅供同源页面使用，写操作要求 JSON，保存和目录查询还要求当前 revision。浏览器请求校验 Origin；桌面壳已校验应用来源并移除来源头的转发请求，使用管理页发送的专用请求头兼容。跨站、空来源及未标记的无来源写请求仍被拒绝；沿用宿主访问控制，部署到公网时保护整个宿主。只读 profile 拒绝保存。客户端原始异常、上游正文和密钥不会进入错误响应；上游请求不自动重试，取消和插件卸载会终止读取。刷新失败保留已有目录；不会偷偷换回内置云端供应商。
 
 若另一个插件正在接管，先在该插件关闭接管。未配置密钥等情况下允许显示外部未就绪状态。目录错误、鉴权失败、限流、超时、配置冲突使用稳定错误码提示。
 
