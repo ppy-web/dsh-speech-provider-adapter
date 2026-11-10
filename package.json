@@ -1,8 +1,9 @@
 {
   "name": "dsh-speech-provider-adapter",
-  "version": "0.1.0-next.1",
+  "version": "0.1.0",
   "type": "module",
   "description": "供应商适配器示例插件：为音色工坊管理自定义语音供应商、模型与音色",
+  "icon": "./assets/plugin-icons/avatar.png",
   "license": "MIT",
   "main": "index.mjs",
   "exports": {
@@ -16,6 +17,7 @@
     "*.mjs",
     "client.js",
     "cordis.patch.yml",
+    "assets",
     "ui",
     "scripts/clear-local-links.mjs",
     "clear-local-links.cmd",
@@ -27,7 +29,9 @@
     "README.md"
   ],
   "scripts": {
-    "test": "node --test test/*.test.mjs"
+    "test": "node --test test/*.test.mjs",
+    "release:check": "node tools/scripts/release-check.mjs",
+    "pack:check": "npm pack --dry-run"
   },
   "engines": {
     "node": ">=24.9.0",
@@ -53,9 +57,9 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "~4.1.0",
-    "@deepseek-ai/schemastery": "~3.19.0",
     "@deepseek-ai/dsh-host-webserver": ">=0.2.2-0 <0.3.0-0",
     "@deepseek-ai/dsh-settings": ">=0.2.2-0 <0.3.0-0",
+    "@deepseek-ai/schemastery": "~3.19.0",
     "dsh-xiaomi-tts": ">=5.2.0-next.0 <6"
   },
   "repository": {
@@ -69,6 +73,9 @@
   "packageManager": "pnpm@11.22.0",
   "publishConfig": {
     "access": "public",
-    "tag": "next"
+    "tag": "latest"
+  },
+  "dependencies": {
+    "ws": "^8.22.1"
   }
 }

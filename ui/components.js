@@ -38,6 +38,19 @@ export function tabs(items, value, onChange, label, disabled = false) {
   return list
 }
 
+export function stepper(items, onSelect, label, disabled = false) {
+  const list = node('ol', { class: 'stepper', 'aria-label': label })
+  for (const [index, item] of items.entries()) {
+    const state = item.current ? 'current' : item.done ? 'done' : 'upcoming'
+    const attrs = { type: 'button', class: 'stepper-step', 'data-state': state, disabled, 'data-focus-key': `step:${item.id}`, onclick: () => { if (!disabled) onSelect(item.id) } }
+    if (item.current) attrs['aria-current'] = 'step'
+    const marker = node('span', { class: 'stepper-marker', 'aria-hidden': 'true' }, item.done ? '✓' : String(index + 1))
+    const step = node('button', attrs, marker, node('span', { class: 'stepper-copy' }, node('strong', {}, item.name)))
+    list.append(node('li', { class: 'stepper-item' }, step, ...(index < items.length - 1 ? [node('span', { class: 'stepper-link', 'aria-hidden': 'true' })] : [])))
+  }
+  return list
+}
+
 let nextId = 0
 
 export function combobox({ value, items, label, placeholder, searchLabel, emptyText, moreText, disabled, focusKey, onChange }) {

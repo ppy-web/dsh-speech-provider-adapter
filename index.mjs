@@ -5,6 +5,7 @@ import { TtsProviderError } from './host-api.mjs'
 import { AdapterStore, catalog, normalizeConfig, validateSelection } from './store.mjs'
 import { discover, preset, streamPcm, synthesize, PROTOCOLS } from './protocols.mjs'
 import { credentialsReady } from './cloud-providers.mjs'
+import { probeLocalPorts } from './local-probe.mjs'
 
 export const name = 'speech-provider-adapter'
 export const inject = ['speechSynthesis', 'webServer', 'settings']
@@ -19,7 +20,9 @@ export function createProvider(store, transport = fetch) {
       const profile = store.active()
       const models = profile ? catalog(profile) : []
       const ready = credentialsReady(profile) && models.some(model => model.id === profile.selection.model && model.voices.some(voice => voice.id === profile.selection.voice))
-      return { name: profile?.name ?? 'Speech providers', ready, formats: ['wav', 'mp3'], maxTextLength: profile ? Math.min(profile.maxTextLength, profile.protocol === 'tencent' ? 150 : profile.protocol === 'openai' ? 4096 : profile.protocol === 'minimax' ? 9999 : 10000) : 1000,
+      const formats = profile?.protocol === 'custom' ? (profile.custom?.audioFormat === 'mp3' ? ['mp3'] : ['wav']) : ['wav', 'mp3']
+      const maxTextLength = profile ? Math.min(profile.maxTextLength, profile.protocol === 'tencent' ? 150 : profile.protocol === 'openai' ? 4096 : profile.protocol === 'custom' ? 4096 : profile.protocol === 'minimax' ? 9999 : 10000) : 1000
+      return { name: profile?.name ?? 'Speech providers', ready, formats, maxTextLength,
         ...(!ready ? { unavailableReason: 'external-provider-not-ready' } : {}), models,
         ...(profile?.selection.model ? { selection: profile.selection, modelName: models.find(model => model.id === profile.selection.model)?.name,
           voiceName: profile.voices.find(voice => voice.id === profile.selection.voice)?.name } : {}), configurationId: profile?.id,
@@ -64,8 +67,9 @@ export async function readBody(req) {
 export function sameOrigin(req, mutation = false) {
   if (['cross-site', 'same-site'].includes(String(req.headers['sec-fetch-site']))) return false
   if (req.headers.origin === undefined) {
-    // The desktop shell checks the app origin, then strips browser origin metadata.
-    // A custom header keeps origin-less writes unavailable to cross-site HTML forms.
+    // The desktop shell validates the app origin, then forwards requests without
+    // browser origin metadata. A dedicated header keeps origin-less writes
+    // unavailable to cross-site HTML forms, which cannot set custom headers.
     return !mutation || (req.headers['sec-fetch-site'] === undefined && req.headers['x-dsh-speech-adapter'] === '1')
   }
   try { const origin = new URL(req.headers.origin); return ['http:', 'https:'].includes(origin.protocol) && origin.host === req.headers.host } catch { return false }
@@ -106,7 +110,7 @@ export async function apply(ctx, config) {
       res.end(data)
     } }))
   }
-  for (const action of ['state', 'save', 'refresh', 'test', 'preset']) ctx.effect(() => ctx.webServer.register({
+  for (const action of ['state', 'save', 'refresh', 'test', 'preset', 'probe']) ctx.effect(() => ctx.webServer.register({
     kind: 'exact', path: `${ROOT}/api/${action}`, async handler(req, res) {
       const read = action === 'state'
       if (req.method !== (read ? 'GET' : 'POST')) { reply(res, 405, { error: 'method-not-allowed' }); return }
@@ -125,6 +129,7 @@ export async function apply(ctx, config) {
           if (!PROTOCOLS.includes(body.protocol)) throw new TtsProviderError('adapter-config-invalid', undefined, 400)
           reply(res, 200, preset(body.protocol)); return
         }
+        if (action === 'probe') { reply(res, 200, await probeLocalPorts(fetch, Array.isArray(body.ports) ? body.ports : undefined, controller.signal)); return }
         if (body.revision !== store.revision) throw new TtsProviderError('adapter-config-changed', undefined, 409)
         if (action === 'save') {
           // Reject ownership conflicts before writing a takeover request to disk.
@@ -134,7 +139,7 @@ export async function apply(ctx, config) {
         }
         const normalized = normalizeConfig({ takeoverEnabled: false, activeId: body.profile?.id ?? '', profiles: [body.profile] }, store.state)
         const profile = normalized.profiles[0]
-        if (!profile.apiKey) throw new TtsProviderError('api-key-not-configured', undefined, 409)
+        if (!profile.apiKey && profile.protocol !== 'custom') throw new TtsProviderError('api-key-not-configured', undefined, 409)
         const result = await discover(profile, fetch, controller.signal)
         reply(res, 200, result)
       } catch (error) { reply(res, error instanceof TtsProviderError ? error.status : controller.signal.aborted ? 504 : 502,

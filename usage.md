@@ -12,15 +12,15 @@
 
 管理入口：DSH 插件管理 → 供应商适配器 → 配置，表单直接显示在宿主内部。接管后，音色工坊密钥区域的“管理供应商”也通过 DSH 内部导航打开该配置区，不新建标签页。表单提供中文、English 和系统深浅主题；`/plugins/speech-provider-adapter` 保留为可选直达地址。
 
-每个供应商标题旁提供“去获取 API Key”外链，指向对应平台的官方密钥创建或管理入口；腾讯云显示“去获取云 API 密钥”，用于获取 SecretId / SecretKey。链接在新标签页打开，桌面端由系统浏览器打开。Fish Audio 入口为开发者入门页，登录后可在其中获取 API Key。OpenAI 兼容协议的入口指向 OpenAI 官方平台；使用其他兼容服务时，请前往该服务自己的平台获取密钥。百炼入口默认北京地域，其他地域请在控制台切换。
+连接步骤提供官方密钥创建或管理入口；腾讯云使用 SecretId / SecretKey。Fish Audio 登录后可在开发者入门页获取 API Key。OpenAI 兼容协议指向 OpenAI 官方平台；其他兼容服务请前往对应平台。百炼入口默认北京地域，其他地域请在控制台切换。
 
-页面使用“连接设置”“模型与音色”“目录管理”和“高级设置”四个标签，切换标签保留未保存的配置。连接设置底部提供测试连接，模型与音色支持按名称或 ID 搜索选择及刷新目录，密钥框可临时显示或隐藏当前输入。顶部保存栏在滚动时保留，侧栏接管区单独显示实际使用的供应商；接管开关、设为当前供应商以及表单编辑均需保存才生效。
+页面按“连接供应商 → 配置模型列表 → 配置音色列表 → 保存与接管”四步条组织，可点击步骤条切换且保留未保存的配置。连接步骤提供测试连接与“拉取模型与音色”，模型和音色步骤从供应商接口拉取目录（按 ID 去重追加、不覆盖已修改的条目），也可手动添加和修改自定义条目，并支持按名称或 ID 搜索。每个列表用单选项标记当前使用的模型/音色，密钥框可临时显示或隐藏当前输入。顶部保存栏在滚动时保留；左侧提供全局“接管语音合成”按钮（统一控制所有供应商，点击后按钮底色变化示意开启/关闭），设为当前供应商以及表单编辑都在“保存与接管”步骤确认并在保存后生效。
 
-宽设置区左侧列出供应商并支持搜索，窄设置区改用下拉选择，正在编辑的配置与实际生效的供应商分别标识。目录管理可在模型、音色之间切换，按名称或 ID 搜索，长列表通过“显示更多”继续加载；模型能力和音色适用模型按需展开。流式、单次文本上限及删除配置位于“高级设置”，目录筛选不会修改保存的条目。
+宽设置区左侧列出供应商并支持搜索，窄设置区改用下拉选择，正在编辑的配置与实际生效的供应商分别标识。模型与音色分列在各自的步骤中，支持按名称或 ID 搜索，长列表通过“显示更多”继续加载；模型能力与音色适用范围按需展开。流式、单次文本上限、语音指令与删除配置位于“保存与接管”步骤，目录筛选不会修改保存的条目。
 
 界面仅参考 shadcn/ui 的组件风格，仍使用原生 HTML、CSS 和 JavaScript。未引入 shadcn、Tailwind 或页面框架依赖，也不需要额外的前端构建。
 
-## 本地安装
+## 安装
 
 使用 npm 包时，在同一宿主实例安装两个插件：
 
@@ -29,17 +29,9 @@ dsh plugin --profile web add dsh-xiaomi-tts@latest
 dsh plugin --profile web add dsh-speech-provider-adapter@latest
 ```
 
-以下为源码开发的本地链接方式。
+从本地链接切换回 npm 包时，Windows 用户可双击仓库中的 `clear-local-links.cmd`，或运行 `node scripts/clear-local-links.mjs`。脚本清理 `web` profile 中供应商适配器的安装记录、本地覆盖和残留目录，备份修改过的配置，保留音色工坊、源码和供应商配置。完成后按脚本提示重新安装适配器；如设置了 `DSH_HOME`，脚本使用该目录。
 
-先在 音色工坊 仓库根目录构建，使用 Node.js 24.9+、pnpm：
-
-```powershell
-pnpm build
-dsh plugin --profile web add "link:E:/personal/Dsh/dsh-plugin-xiaomi-mimo-tts"
-dsh plugin --profile web add "link:E:/personal/Dsh/dsh-speech-provider-adapter"
-```
-
-将路径替换为实际路径；适配器没有额外构建步骤。用于本地源码开发时，在适配器目录执行 `pnpm install`，开发依赖会链接相邻的 `../dsh-plugin-xiaomi-mimo-tts`；其他目录结构请调整该开发依赖链接。供应商适配器 的 `cordis.patch.yml` 声明了宿主组件；在插件管理中启用该组件，重启或按宿主提示重新加载。音色工坊 和 供应商适配器 必须在同一个宿主实例。若手动维护 profile，组件为：
+供应商适配器 的 `cordis.patch.yml` 声明了宿主组件；在插件管理中启用该组件，重启或按宿主提示重新加载。音色工坊 和 供应商适配器 必须在同一个宿主实例。桌面端由桌面应用内的插件管理安装并启用，不使用命令行的 `--profile desktop`；安装或更新后需完整重新加载桌面页面。若手动维护 profile，组件为：
 
 ```yaml
 - id: speech-provider-adapter
@@ -47,13 +39,11 @@ dsh plugin --profile web add "link:E:/personal/Dsh/dsh-speech-provider-adapter"
   config: {}
 ```
 
-从本地链接切换回 npm 包时，Windows 用户可双击仓库中的 `clear-local-links.cmd`，或运行 `node scripts/clear-local-links.mjs`。脚本清理 `web` profile 中供应商适配器的安装记录、本地覆盖和残留目录，备份修改过的配置，保留音色工坊、源码和供应商配置。完成后按脚本提示重新安装适配器；如设置了 `DSH_HOME`，脚本使用该目录。
-
-供应商适配器 依赖 `speechSynthesis`、`webServer`、`settings` 服务。仅通过公开入口 `dsh-xiaomi-tts/host-api` 使用类型契约和错误类，不读取音色工坊的内部实现或构建目录。旧 npm 版 音色工坊 若没有本次目录与选择接口，需先安装当前构建。
+供应商适配器 依赖 `speechSynthesis`、`webServer`、`settings` 服务，并通过 npm 依赖 `ws` 支持豆包的 WebSocket 合成。仅通过公开入口 `dsh-xiaomi-tts/host-api` 使用类型契约和错误类，不读取音色工坊的内部实现或构建目录。旧 npm 版 音色工坊 若没有本次目录与选择接口，需先安装当前构建。
 
 ## 服务商预设
 
-“新增”中包含 SenseAudio（商汤）、OpenAI compatible（OpenAI 兼容）、MiniMax（稀宇科技）、SiliconFlow（硅基流动）、ElevenLabs、Fish Audio、Alibaba Cloud Bailian（阿里云百炼）和 Tencent Cloud（腾讯云）。预设只建立草稿，不会开启接管、写入密钥或调用付费合成。以下新增预设按官方接口文档整理于 2026-11-06，未使用真实账号实测；模型、音色与账号权限以供应商当前服务为准。中文备注用于协议选项和新建预设名称，已有配置名称保持用户保存的值。
+“新增”中包含 SenseAudio（商汤）、OpenAI compatible（OpenAI 兼容）、MiniMax（稀宇科技）、SiliconFlow（硅基流动）、ElevenLabs、Fish Audio、Alibaba Cloud Bailian（阿里云百炼）、Tencent Cloud（腾讯云），以及音色工坊内置的 Xiaomi MiMo TTS（小米）、豆包 Seed TTS（火山引擎）、Breeze Blue TTS 和完全自定义本地模型（Custom local model）。预设只建立草稿，不会开启接管、写入密钥或调用付费合成。以下新增预设按官方接口文档整理，未使用真实账号实测；模型、音色与账号权限以供应商当前服务为准。中文备注用于协议选项和新建预设名称，已有配置名称保持用户保存的值。
 
 | 服务商 | 协议与默认配置 | 使用差异与官方参考 |
 | --- | --- | --- |
@@ -62,6 +52,10 @@ dsh plugin --profile web add "link:E:/personal/Dsh/dsh-speech-provider-adapter"
 | Fish Audio | 原生协议；S2.1 Pro、S2.1 Pro Free、S2 Pro、S1，音色初始为空 | 合成模型放在 model 请求头，音色对应 reference_id。刷新读取自己工作区的音色；公共音色或其他可用参考 ID 可手动加入。不会将声音模型目录误当合成模型，也不填写虚构 ID。[合成](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech)、[音色目录](https://docs.fish.audio/api-reference/endpoint/model/list-models) |
 | Alibaba Cloud Bailian（阿里云百炼） | 原生 Qwen-Audio-TTS HTTP；Qwen-Audio 3.0 / 3.1 Flash / Plus，按模型绑定示例音色 | Bearer API Key；业务空间域名，SSE Base64 音频；24 kHz PCM 封装 WAV 或拼接 MP3，支持流式和 input.instruction。预设或手动目录，不伪造连接成功。[合成接口](https://help.aliyun.com/zh/model-studio/qwen-audio-tts-http-api)、[音色列表](https://help.aliyun.com/zh/model-studio/qwen-audio-tts-voice-list) |
 | Tencent Cloud（腾讯云） | 原生 TextToVoice API 3.0；固定基础合成接口，智瑜、智云、智斌、智兰示例音色 | SecretId / SecretKey，TC3-HMAC-SHA256；直接返回上游 16 kHz WAV / MP3。当前仅完整音频，无独立语音指令，保守限制每段 150 字。预设或手动目录。[合成接口](https://cloud.tencent.com/document/api/1073/37995)、[签名方法](https://cloud.tencent.com/document/api/213/30654)、[音色列表](https://cloud.tencent.com/document/product/1073/92668) |
+| Xiaomi MiMo TTS（小米） | OpenAI 兼容 chat/completions；MiMo v2.5 TTS，内置 8 个音色 | Bearer API Key（`sk-`，`tp-` 自动改用 token-plan 地址）；messages 携带语音指令、audio.voice 选音色；完整 WAV/MP3 与 SSE PCM16 流式。预设目录。[音色工坊文档](https://ppy-web.github.io/dsh-plugin-xiaomi-mimo-tts/) |
+| 豆包 Seed TTS（火山引擎） | WebSocket 双向流；seed-tts-2.0 / seed-icl-2.0，30 个精选音色 | `X-Api-Key` 与 `X-Api-Resource-Id=模型`；`ark-` 密钥自动改用 agent-plan 地址；返回 24 kHz PCM16，可完整音频或流式；seed-icl 为复刻音色、不支持语音指令。[音色列表](https://docs.volcengine.com/docs/DoubaoVoice/Tonelist-1?lang=zh) |
+| Breeze Blue TTS | 原生 HTTP 二进制；固定 breeze-tts-2，30 个预设音色 | `xi-api-key`；`/text-to-speech/{voice}` 返回 WAV/MP3，`/stream` 返回 PCM；单次上限 1000 字。[音色库](https://breezeblue.ai/zh/voice-library) |
+| 自定义本地模型（Custom local model） | 原生 HTTP；默认 OpenAI 风格 `POST {BaseURL}/audio/speech`，返回二进制音频 | 仅需本地 Base URL，API Key 可选；请求方法、路径、请求头、JSON 请求体模板、取音方式与音频格式均在“高级选项”中自定义；手动目录，测试连接与刷新不可用。 |
 
 ### 阿里云百炼
 
@@ -87,14 +81,28 @@ Fish Audio 新建配置需要先填写密钥，再刷新工作区音色或手动
 
 ElevenLabs 音色与 Fish Audio 工作区音色按分页读取，去重后最多 2000 项；目录过大、分页异常或权限不足时返回稳定错误，已有目录不会被覆盖。Fish Audio 的合成模型列表来自文档预设，测试连接必须有真实目录请求成功，静态预设不作为连接成功依据。
 
+### 音色工坊内置供应商
+
+小米 MiMo、豆包 Seed 与 Breeze Blue 是音色工坊的内置供应商，本适配器同样提供连接配置与合成：模型、音色来自内置预设目录（“拉取”按 ID 去重追加、不覆盖已修改条目，也可手动补充），三家均支持完整音频与流式播放。小米使用 OpenAI 兼容 chat/completions，`sk-` 与 `tp-` 密钥均可（`tp-` 自动改用 token-plan 域名）；豆包 Seed 通过 WebSocket 双向流合成，`ark-` 密钥自动改用 agent-plan 地址，`seed-icl-2.0` 使用复刻音色且不支持独立语音指令；Breeze Blue 固定 `breeze-tts-2`，单次上限 1000 字。豆包协议需要适配器的 `ws` npm 依赖（安装时自动带入）。
+
+### 自定义本地模型
+
+“自定义本地模型（Custom local model）”用于连接本地或自建的 TTS 服务。默认预设等价于常见的 OpenAI 风格本地服务：`POST {BaseURL}/audio/speech`，使用 `Authorization: Bearer {{apiKey}}`，`response_format` 由音频格式决定，返回二进制音频；只需填写本地 Base URL（如 `http://127.0.0.1:8880/v1`）即可试用，API Key 可选。
+
+在“连接供应商”步骤下方的“自定义请求（高级）”中可完全自定义：请求方法（GET/POST）、相对请求路径（可带查询串）、请求头（支持 `{{apiKey}}` 等占位符）、JSON 请求体模板、请求体编码（`JSON` 或表单 `application/x-www-form-urlencoded`）、取音方式（binary 二进制 / json-base64 / json-hex）与取音路径、返回音频格式（pcm/wav/mp3）与采样率。请求体模板支持占位符 `{{text}}`、`{{model}}`、`{{voice}}`、`{{format}}`（等于返回音频格式）、`{{sampleRate}}`、`{{instruction}}`、`{{apiKey}}`；当 `voice`/`instruction`/`apiKey` 对应占位符为空时，该字段或请求头会自动省略。`Content-Type` 由请求体编码自动设置（JSON 为 `application/json`，表单为 `application/x-www-form-urlencoded`）；GET 请求没有请求体，模板会转为查询参数。
+
+例如连接本机 MOSS-TTS-Nano（`http://127.0.0.1:18083`）：请求方法 `POST`、路径 `api/generate`、请求体编码“表单”、模板 `{"text":"{{text}}","demo_id":"{{voice}}"}`、取音方式 `json-base64`、取音路径 `audio_base64`、返回格式 `wav`，无需 API Key；音色 ID 使用内置 `demo-1…demo-N` 或“我的音色”中的 `my-*`。连接步骤还提供“探测本地端口”按钮：后端在 `127.0.0.1` 上扫描常见本地服务端口（如 18083 / 8880 / 8000 / 8080 / 1234 等），点击结果即可填入 Base URL；API Key 对自定义协议为可选。
+
+格式与流式：返回 `pcm` 时按配置的采样率封装为 WAV；`wav`/`mp3` 直接使用上游音频。仅当返回 `pcm`、采样率 24000 且取音方式为 binary 时支持 HTTP 流式；`json-*`、`wav`、`mp3` 仅完整音频。自定义协议不做只读目录查询，测试连接与刷新目录不可用，请在“目录管理”中手动维护模型与音色，保存后到音色工坊试听验证。仍不支持 WebSocket、URL 音频下载、multipart 或非 JSON 请求体。
+
 ## 配置与协议
 
 提供的 SenseAudio 接口参考位于 [doc/sense.md](doc/sense.md)。
 
 1. 新增配置，填写名称，选择协议，并设置相应地址、密钥、模型和音色。切换协议只更改请求格式，不会清空已有地址或目录。
-2. “测试连接”查询目录，不执行合成。“刷新模型与音色”按 ID 合并返回结果，保留原目录和选择；在目录编辑区添加、重命名或移除条目。空白/重复 ID、无效选择在保存时拒绝。
+2. “测试连接”查询目录，不执行合成。“拉取模型/音色”按 ID 去重追加返回结果，不覆盖已修改条目；在目录编辑区添加、重命名或移除条目。空白/重复 ID、无效选择在保存时拒绝。
 3. OpenAI 兼容服务没有统一的公共系统音色目录，适配器提供可编辑的常用音色初始列表；按目标服务实际支持的 ID 配置。MiniMax 模型目录无法查询时保留预设或手动模型，音色查询可独立成功。目录测试成功不保证所有模型均有合成权限。
-4. “设为当前供应商”选择 供应商适配器 当前配置，打开接管开关，点击“保存更改”。供应商切换和接管开关也遵循保存机制。
+4. 左侧“接管语音合成”按钮是全局开关（影响所有供应商），点击后按钮底色变化示意开启/关闭；“设为当前供应商”选择当前配置，点击“保存更改”生效。供应商切换和接管状态也遵循保存机制。
 5. 音色工坊 中模型、音色、指令切换先形成草稿，点击现有保存按钮写入 供应商适配器。外部配置发生变化后保存旧草稿会被拒绝，放弃草稿后读取最新选择。音色工坊 的内置配置不参与 供应商适配器 保存。
 
 | 协议 | 地址示例 | 合成 | 目录 | 指令与标签 |
@@ -103,7 +111,7 @@ ElevenLabs 音色与 Fish Audio 工作区音色按分页读取，去重后最多
 | OpenAI compatible | `https://api.openai.com/v1` | `/v1/audio/speech` 二进制音频 / PCM 流 | `/v1/models` 中名称含 tts / speech- 的模型；音色手动目录 | 已知支持的模型启用 `instructions`；兼容服务可在模型目录中设置该能力 |
 | MiniMax（稀宇科技） | `https://api.minimax.io` 或目标服务地址 | `/v1/t2a_v2` JSON hex、SSE hex PCM | `/v1/get_voice`；模型预设或手动，兼容服务支持时也可获取 | 情绪枚举映射 `voice_setting.emotion`，2.8 声音标签按官方列表提供 |
 
-Base URL 支持服务根地址、已有 `/v1` 和反向代理前缀，不接受 URL 用户名、密码、查询参数或片段。协议切换不代表不同平台的模型 ID、音色或凭据可以互用。HTTP 传输支持本地兼容服务；公网服务通常使用 HTTPS。当前不支持 WebSocket、任意 JSON 模板、声音克隆创建、文生音色创建、自定义请求头或 URL 音频下载。
+Base URL 支持服务根地址、已有 `/v1` 和反向代理前缀，不接受 URL 用户名、密码、查询参数或片段。协议切换不代表不同平台的模型 ID、音色或凭据可以互用。HTTP 传输支持本地兼容服务；公网服务通常使用 HTTPS。自定义本地模型协议支持任意 JSON 请求体模板与自定义请求头；除此之外仍不支持 WebSocket、URL 音频下载、声音克隆创建、文生音色创建或非 JSON 请求体。
 
 除腾讯云返回原生 16 kHz WAV 外，完整 WAV 请求 24 kHz、单声道 PCM16 后封装；MP3 使用上游音频。HTTP 流式请求固定 24 kHz 单声道 PCM16，SSE 处理跨网络分片的事件，排除末尾聚合音频以避免重复播放。能力可按供应商及模型关闭，关闭后 音色工坊 使用完整音频路径。上游返回不匹配的格式或采样元数据时拒绝，不把压缩音频伪装成 PCM。
 
@@ -123,12 +131,21 @@ Base URL 支持服务根地址、已有 `/v1` 和反向代理前缀，不接受 
 
 协议调度位于 `protocols.mjs`，百炼 SSE 和腾讯云签名/合成实现位于 `cloud-providers.mjs`，持久化和目录校验位于 `store.mjs`，宿主注册与管理路由位于 `index.mjs`，管理页在 `ui/`。替换或扩展上游时保留请求取消、音频格式、大小上限及稳定错误约定。主插件接口详见音色工坊仓库的 `open-api.md`；本地相邻目录为 `../dsh-plugin-xiaomi-mimo-tts/open-api.md`。
 
+## 发布（自动发包）
+
+发布与主包一致，使用 GitHub Actions + npm Trusted Publishing（OIDC），无需在本机保存 npm token 或输入 OTP：
+
+1. 首次配置：在 npm 包 `dsh-speech-provider-adapter` 的 Settings → Trusted Publisher 中添加 GitHub Actions：组织 `ppy-web`、仓库 `dsh-speech-provider-adapter`、工作流 `release.yml`（Environment 留空）。
+2. 发布正式版：更新 `package.json` 版本（如 `0.1.1`）并提交，然后打标签并推送：`git tag v0.1.1 && git push origin v0.1.1`。工作流会校验标签与版本一致、执行 `release:check`、打包并 `npm publish --provenance --tag latest`。
+3. 预发布：版本号含 `-`（如 `0.1.1-next.0`）自动发布到 `next` 标签；`latest` 不会被降级。
+4. 本地校验：`pnpm release:check`（语法/JSON）、`pnpm test`（完整行为测试）、`pnpm pack:check`（打包预览）。
+
 ## English
 
-This independent DSH Web plugin manages SenseAudio, OpenAI-compatible Speech, MiniMax, SiliconFlow, ElevenLabs, Fish Audio, Alibaba Cloud Bailian and Tencent Cloud profiles. Presets are documentation-based examples, not verified provider accounts. Fish Audio starts without a voice ID: refresh workspace voices or add a reference ID manually. Bailian uses a workspace-specific regional endpoint and API Key, with Qwen-Audio-TTS HTTP SSE; Tencent uses SecretId / SecretKey and TC3 signing for TextToVoice, with complete 16 kHz audio only and a conservative 150-character limit. Their catalogs are preset/manual and connection tests/refresh are disabled. Open its configuration in the DSH plugin manager, configure a profile, choose it as active, enable takeover, and save. The page supports English. 音色工坊 reuses its existing model/voice/instruction controls; selections remain drafts until Save and are persisted by 供应商适配器. Disable takeover to restore 音色工坊's built-in configuration.
+This independent DSH Web plugin manages SenseAudio, OpenAI-compatible Speech, MiniMax, SiliconFlow, ElevenLabs, Fish Audio, Alibaba Cloud Bailian, Tencent Cloud and fully custom local-model profiles. Presets are documentation-based examples, not verified provider accounts. Fish Audio starts without a voice ID: refresh workspace voices or add a reference ID manually. Bailian uses a workspace-specific regional endpoint and API Key, with Qwen-Audio-TTS HTTP SSE; Tencent uses SecretId / SecretKey and TC3 signing for TextToVoice, with complete 16 kHz audio only and a conservative 150-character limit. Their catalogs are preset/manual and connection tests/refresh are disabled. Open its configuration in the DSH plugin manager, configure a profile, choose it as active, enable takeover, and save. The page supports English. 音色工坊 reuses its existing model/voice/instruction controls; selections remain drafts until Save and are persisted by 供应商适配器. Disable takeover to restore 音色工坊's built-in configuration.
 
-Settings use four tabs: Connection, Model and voice, Manage catalogs, and Advanced settings. Model and voice pickers support name/ID search; changing tabs retains drafts. The save bar remains available while scrolling, and the actual takeover state is shown separately from unsaved changes. Narrow settings surfaces use a provider dropdown. Catalogs support separate model/voice views, name or ID search, and Show more for long lists; capabilities and model scope expand on demand. Streaming, text limits and deletion are under Advanced settings.
+Settings use a four-step flow: Connect provider → Configure models → Configure voices → Save and takeover. Steps are clickable and retain unsaved drafts. Models and voices are fetched from the provider's API when available (merged by ID, keeping existing entries) and can also be added manually; each list marks the active model/voice with a radio button. A global takeover button in the left sidebar controls all profiles, and its background shows on/off. Streaming, text limits, instructions and deletion live in the final step. Narrow settings surfaces use a provider dropdown. Long lists support name/ID search and Show more; capabilities and model scope expand on demand.
 
-Build 音色工坊 first, then install both local paths with `dsh plugin --profile web add "link:<absolute-path>"`. The adapter ships its own bundle patch and requires the updated 音色工坊, Web server and Settings services. No separate build is required for 供应商适配器. The settings form stays inside DSH; 音色工坊 opens it through the host plugin navigation. Credentials remain in a profile-local JSON file; browsers receive only key-presence metadata. Connection tests query catalogs without generating speech. Full audio and HTTP PCM streaming are supported; WebSocket and arbitrary request templates are outside this plugin.
+The adapter ships its own bundle patch and requires the updated 音色工坊, Web server and Settings services. No separate build is required for 供应商适配器. The settings form stays inside DSH; 音色工坊 opens it through the host plugin navigation. Credentials remain in a profile-local JSON file; browsers receive only key-presence metadata. Connection tests query catalogs without generating speech. Full audio and HTTP PCM streaming are supported. The custom local-model protocol supports arbitrary JSON body templates and custom request headers; WebSocket, URL audio downloads and non-JSON bodies remain outside this plugin.
 
-Official protocol references: [SenseAudio synthesis](https://docs.senseaudio.cn/api-reference/endpoint/tts/synthesize.md), [SenseAudio models](https://docs.senseaudio.cn/api-reference/endpoint/models/list.md), [SenseAudio voices](https://docs.senseaudio.cn/api-reference/endpoint/voice/list.md), [MiniMax synthesis](https://platform.minimax.io/docs/api-reference/speech-t2a-http), [MiniMax voices](https://platform.minimax.io/docs/api-reference/voice-management-get), [OpenAI Speech](https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create).
+Official protocol references for every provider are listed in [README.md](README.md#官方文档链接).

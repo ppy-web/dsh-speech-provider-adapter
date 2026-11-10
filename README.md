@@ -9,19 +9,19 @@
 - **供应商适配器**：管理供应商名称、Base URL、API Key、接口协议、模型与音色目录，调用上游接口生成音频。
 - **音色工坊**：提供模型与音色选择、试听、朗读、播放控制、历史、下载和渠道联动。
 
-当前包含 SenseAudio（商汤）、OpenAI compatible（OpenAI 兼容）、MiniMax（稀宇科技）、SiliconFlow（硅基流动）、ElevenLabs、Fish Audio、Alibaba Cloud Bailian（阿里云百炼）和 Tencent Cloud（腾讯云）的示例适配，支持多套供应商配置、目录查询与手动补充、完整音频和 HTTP PCM 流式。不同服务的兼容情况需要分别调试；目录查询成功不代表语音合成一定可用。
+当前包含 SenseAudio（商汤）、OpenAI compatible（OpenAI 兼容）、MiniMax（稀宇科技）、SiliconFlow（硅基流动）、ElevenLabs、Fish Audio、Alibaba Cloud Bailian（阿里云百炼）、Tencent Cloud（腾讯云），以及音色工坊内置的 Xiaomi MiMo TTS（小米）、豆包 Seed TTS（火山引擎）、Breeze Blue TTS 及完全自定义本地模型（Custom local model）的示例适配，支持多套供应商配置、目录查询与手动补充、完整音频和流式播放。不同服务的兼容情况需要分别调试；目录查询成功不代表语音合成一定可用。
 
 新增预设依据官方文档整理，未使用真实账号实测。硅基流动预填 CosyVoice2 系统音色；ElevenLabs 可刷新账号音色；Fish Audio 需要刷新工作区音色或手动填写参考音色 ID。各服务的采样率、鉴权和目录差异见 [服务商预设说明](usage.md#服务商预设)。
 
-阿里云百炼接入 Qwen-Audio-TTS HTTP 协议，需要业务空间地址与同地域 API Key；腾讯云接入 TextToVoice API 3.0，需要 SecretId / SecretKey，当前仅完整音频。两家的模型和音色先使用预设或手动维护，测试连接与目录刷新暂不可用；保存后通过音色工坊试听验证。
+阿里云百炼接入 Qwen-Audio-TTS HTTP 协议，需要业务空间地址与同地域 API Key；腾讯云接入 TextToVoice API 3.0，需要 SecretId / SecretKey，当前仅完整音频。两家的模型和音色先使用预设或手动维护，测试连接与目录刷新暂不可用；保存后通过音色工坊试听验证。小米 MiMo 走 OpenAI 兼容 chat/completions（`sk-` / `tp-` 密钥），Breeze Blue 走 `xi-api-key` 二进制音频，豆包 Seed 走 WebSocket 双向流（`ark-` 密钥自动改用 agent-plan 地址）；三者都使用内置预设目录，并支持完整音频与流式播放。自定义本地模型协议默认指向本地 OpenAI 风格的 `/audio/speech`，只需本地 Base URL（API Key 可选），并在“高级选项”中支持自定义请求方法、路径、请求头、JSON 请求体模板、请求体编码（JSON / 表单）、取音方式与音频格式；连接步骤还可“探测本地端口”自动发现本机服务，详见 [自定义本地模型](usage.md#自定义本地模型)。
 
-管理页使用轻量的原生 HTML、CSS 和 JavaScript。shadcn/ui 仅作为组件风格与交互组织的参考，不引入 shadcn、Tailwind 或前端框架依赖，不增加页面构建步骤。页面提供分区标签、供应商搜索、模型与音色搜索选择及统一保存操作。
+管理页使用轻量的原生 HTML、CSS 和 JavaScript。shadcn/ui 仅作为组件风格与交互组织的参考，不引入 shadcn、Tailwind 或前端框架依赖，不增加页面构建步骤。页面提供四步配置流程（连接供应商 → 配置模型列表 → 配置音色列表 → 保存与接管）、供应商搜索，模型与音色从接口拉取（去重追加）或手动补充，以及统一保存操作；左侧提供全局接管按钮（统一控制所有供应商，按钮底色示意开启/关闭）。
 
 ## 设置页示意
 
 以下为管理页的示例配置截图，不含真实密钥，仅展示界面与操作入口，不代表供应商实测结果。
 
-在连接设置中管理供应商名称、协议、Base URL 与密钥，左侧显示供应商列表和实际接管状态。
+在连接步骤中管理供应商名称、协议、Base URL 与密钥，左侧显示供应商列表和接管状态。
 
 ![供应商适配器设置页示意](docs/images/settings.png)
 
@@ -34,7 +34,7 @@ dsh plugin --profile web add dsh-xiaomi-tts@latest
 dsh plugin --profile web add dsh-speech-provider-adapter@latest
 ```
 
-安装后，在 DSH 插件管理中启用供应商适配器组件，并按宿主提示重启或重新加载。源码本地链接和手动配置方法见 [安装与使用说明](usage.md#本地安装)。
+安装后，在 DSH 插件管理中启用供应商适配器组件，并按宿主提示重启或重新加载。详细配置方法见 [安装与使用说明](usage.md#安装)。
 
 如果之前使用本地链接安装供应商适配器，Windows 下可双击 [clear-local-links.cmd](clear-local-links.cmd) 清理适配器的安装记录和残留，再重新安装适配器。脚本会备份修改过的配置，不删除源码或供应商配置，也不清理音色工坊。
 
@@ -60,6 +60,20 @@ dsh plugin --profile web add dsh-speech-provider-adapter@latest
 首次测试可优先选择 Fish Audio，创建 API Key 后，在适配器中选择对应协议、将模型明确设为 `s2.1-pro-free`，并填写可用的参考音色 ID，再用一句短文本试听。零余额调用付费模型可能返回 `402`，网页订阅额度与 API 计费也应分别确认。
 
 百炼默认在免费额度用完后转为按量付费，仅测试时可提前开启官方提供的“免费额度用完即停”。MiniMax、SiliconFlow（硅基流动）和 SenseAudio 暂未确认到适用于本项目 TTS API 的固定免费额度，请以各自账号控制台为准。
+
+## 官方文档链接
+
+- **SenseAudio（商汤）**：[合成](https://docs.senseaudio.cn/api-reference/endpoint/tts/synthesize.md) · [模型列表](https://docs.senseaudio.cn/api-reference/endpoint/models/list.md) · [音色列表](https://docs.senseaudio.cn/api-reference/endpoint/voice/list.md)
+- **OpenAI compatible（OpenAI 兼容）**：[Speech 合成](https://developers.openai.com/api/reference/resources/audio/subresources/speech/methods/create)
+- **MiniMax（稀宇科技）**：[合成](https://platform.minimax.io/docs/api-reference/speech-t2a-http) · [音色管理](https://platform.minimax.io/docs/api-reference/voice-management-get)
+- **SiliconFlow（硅基流动）**：[合成](https://docs.siliconflow.cn/docs/api/audio-speech-post) · [音色与格式](https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech)
+- **ElevenLabs**：[合成](https://elevenlabs.io/docs/api-reference/text-to-speech/convert) · [流式](https://elevenlabs.io/docs/api-reference/text-to-speech/stream) · [音色目录](https://elevenlabs.io/docs/api-reference/voices/search)
+- **Fish Audio**：[合成](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech) · [音色目录](https://docs.fish.audio/api-reference/endpoint/model/list-models)
+- **Alibaba Cloud Bailian（阿里云百炼）**：[合成](https://help.aliyun.com/zh/model-studio/qwen-audio-tts-http-api) · [音色列表](https://help.aliyun.com/zh/model-studio/qwen-audio-tts-voice-list)
+- **Tencent Cloud（腾讯云）**：[合成](https://cloud.tencent.com/document/api/1073/37995) · [签名方法](https://cloud.tencent.com/document/api/213/30654) · [音色列表](https://cloud.tencent.com/document/product/1073/92668)
+- **Xiaomi MiMo TTS（小米）**：[音色工坊文档](https://ppy-web.github.io/dsh-plugin-xiaomi-mimo-tts/)
+- **豆包 Seed TTS（火山引擎）**：[音色列表](https://docs.volcengine.com/docs/DoubaoVoice/Tonelist-1?lang=zh)
+- **Breeze Blue TTS**：[音色库](https://breezeblue.ai/zh/voice-library)
 
 ## 欢迎 Issue 和 PR
 
