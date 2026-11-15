@@ -6,16 +6,17 @@ const protocols = [{ id: 'senseaudio', name: 'SenseAudio（商汤）' }, { id: '
   { id: 'siliconflow', name: 'SiliconFlow（硅基流动）' }, { id: 'elevenlabs', name: 'ElevenLabs' }, { id: 'fish', name: 'Fish Audio' },
   { id: 'aliyun', name: 'Alibaba Cloud Bailian（阿里云百炼）' }, { id: 'tencent', name: 'Tencent Cloud（腾讯云）' },
   { id: 'xiaomi', name: 'Xiaomi MiMo TTS（小米）' }, { id: 'doubao', name: '豆包 Seed TTS（火山引擎）' }, { id: 'breeze', name: 'Breeze Blue TTS' },
-  { id: 'custom', name: '自定义本地模型（Custom local model）' }]
+  { id: 'deepseek', name: 'DeepSeek TTS' }, { id: 'custom', name: '自定义本地模型（Custom local model）' }]
 const DEFAULT_CUSTOM = {
   method: 'POST', path: 'audio/speech', bodyType: 'json',
   headers: [{ name: 'Authorization', value: 'Bearer {{apiKey}}' }],
   body: { model: '{{model}}', input: '{{text}}', voice: '{{voice}}', response_format: '{{format}}', instructions: '{{instruction}}' },
   response: 'binary', audioPath: 'data.audio', audioFormat: 'wav', sampleRate: 24000,
 }
-const manualCatalog = profile => ['aliyun', 'tencent', 'custom'].includes(profile.protocol)
+const manualCatalog = profile => ['aliyun', 'tencent', 'custom', 'deepseek'].includes(profile.protocol)
 // Official provider pages for obtaining credentials.
 const API_KEY_LINKS = {
+  deepseek: 'https://platform.deepseek.com/api_keys',
   senseaudio: 'https://senseaudio.cn/api-platform/api-key',
   openai: 'https://platform.openai.com/api-keys',
   minimax: 'https://platform.minimax.io/console/keys',
@@ -86,7 +87,7 @@ export function mountManager(surface) {
   }
   function compatibleVoices(profile) { return profile.voices.filter(voice => !voice.modelIds?.length || voice.modelIds.includes(profile.selection.model)) }
   function modelSupports(profile, model) {
-    if (profile.protocol === 'tencent') return false
+    if (profile.protocol === 'tencent' || profile.protocol === 'deepseek') return false
     if (profile.protocol === 'custom') return model.speechInstruction === true
     const supported = profile.protocol === 'openai' ? /^gpt-4o-mini-tts(?:-|$)/u.test(model.id)
       : profile.protocol === 'aliyun' ? /^qwen-audio-3\.[01]-tts-(?:flash|plus)$/u.test(model.id)

@@ -83,6 +83,8 @@ ElevenLabs 音色与 Fish Audio 工作区音色按分页读取，去重后最多
 
 ### 音色工坊内置供应商
 
+DeepSeek TTS 使用 `https://api.deepseek.com/v1/tools/tts`，支持 Stella 和 Tide 音色、WAV 完整音频及 24 kHz PCM 流；接口没有模型参数，适配器中的 DeepSeek TTS 模型仅用于目录选择。填写 API Key 后保存并试听验证，目录查询和连接测试不可用。单次请求上限为 10,000 计费字符及 64 KiB 请求体，中文字符按两个计费字符计算，不支持语音指令或 MP3。参见 [DeepSeek 语音合成文档](https://api-docs.deepseek.com/zh-cn/guides/tts/)。
+
 小米 MiMo、豆包 Seed 与 Breeze Blue 是音色工坊的内置供应商，本适配器同样提供连接配置与合成：模型、音色来自内置预设目录（“拉取”按 ID 去重追加、不覆盖已修改条目，也可手动补充），三家均支持完整音频与流式播放。小米使用 OpenAI 兼容 chat/completions，`sk-` 与 `tp-` 密钥均可（`tp-` 自动改用 token-plan 域名）；豆包 Seed 通过 WebSocket 双向流合成，`ark-` 密钥自动改用 agent-plan 地址，`seed-icl-2.0` 使用复刻音色且不支持独立语音指令；Breeze Blue 固定 `breeze-tts-2`，单次上限 1000 字。豆包协议需要适配器的 `ws` npm 依赖（安装时自动带入）。
 
 ### 自定义本地模型
@@ -148,4 +150,4 @@ Settings use a four-step flow: Connect provider → Configure models → Configu
 
 The adapter ships its own bundle patch and requires the updated 音色工坊, Web server and Settings services. No separate build is required for 供应商适配器. The settings form stays inside DSH; 音色工坊 opens it through the host plugin navigation. Credentials remain in a profile-local JSON file; browsers receive only key-presence metadata. Connection tests query catalogs without generating speech. Full audio and HTTP PCM streaming are supported. The custom local-model protocol supports arbitrary JSON body templates and custom request headers; WebSocket, URL audio downloads and non-JSON bodies remain outside this plugin.
 
-Official protocol references for every provider are listed in [README.md](README.md#官方文档链接).
+DeepSeek TTS uses the [official TTS API](https://api-docs.deepseek.com/guides/tts/), with Stella and Tide voices, WAV and 24 kHz PCM streaming. Its model entry is a local placeholder; the API does not accept a model parameter. Catalog and connection tests are unavailable.

@@ -5,8 +5,8 @@ import { synthesizeCustom, streamCustom } from './custom-provider.mjs'
 
 const MAX_AUDIO = 32 * 1024 * 1024
 const fail = (code, status = 502) => { throw new TtsProviderError(code, undefined, status) }
-export const PROTOCOLS = ['senseaudio', 'openai', 'minimax', 'siliconflow', 'elevenlabs', 'fish', 'aliyun', 'tencent', 'xiaomi', 'doubao', 'breeze', 'custom']
-const BINARY_PROTOCOLS = new Set(['openai', 'siliconflow', 'elevenlabs', 'fish'])
+export const PROTOCOLS = ['senseaudio', 'openai', 'minimax', 'siliconflow', 'elevenlabs', 'fish', 'aliyun', 'tencent', 'xiaomi', 'doubao', 'breeze', 'deepseek', 'custom']
+const BINARY_PROTOCOLS = new Set(['openai', 'siliconflow', 'elevenlabs', 'fish', 'deepseek'])
 const FISH_MODELS = ['s2.1-pro', 's2.1-pro-free', 's2-pro', 's1']
 const XIAOMI_MODELS = ['mimo-v2.5-tts']
 const XIAOMI_VOICES = ['冰糖', '茉莉', '苏打', '白桦', 'Mia', 'Chloe', 'Milo', 'Dean']
@@ -38,6 +38,7 @@ const emotions = ['happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised', 
 const interjections = ['laughs', 'chuckle', 'coughs', 'clear-throat', 'groans', 'breath', 'pant', 'inhale', 'exhale', 'gasps', 'sniffs', 'sighs', 'snorts', 'burps', 'lip-smacking', 'humming', 'hissing', 'emm', 'sneezes']
 
 export function modelFeatures(protocol, model, profile) {
+  if (protocol === 'deepseek') return { streaming: model.streaming !== false, speechInstruction: false }
   if (protocol === 'custom') {
     const custom = profile?.custom
     return { streaming: custom?.audioFormat === 'pcm' && custom?.sampleRate === 24000 && model.streaming !== false,
@@ -115,6 +116,12 @@ export function preset(protocol = 'senseaudio') {
     models: [{ id: BREEZE_MODEL, name: 'Breeze TTS 2', streaming: true, speechInstruction: true }],
     voices: BREEZE_VOICES.map(([id, name]) => ({ id, name })),
     selection: { model: BREEZE_MODEL, voice: 'voc_rh6e8hdbraz6', speechInstruction: '' },
+  }
+  if (protocol === 'deepseek') return {
+    protocol, name: 'DeepSeek TTS', baseURL: 'https://api.deepseek.com/v1', apiKey: '', streaming: true, maxTextLength: 10000,
+    models: [{ id: 'deepseek-tts', name: 'DeepSeek TTS', speechInstruction: false }],
+    voices: [{ id: 'stella', name: 'Stella' }, { id: 'tide', name: 'Tide' }],
+    selection: { model: 'deepseek-tts', voice: 'stella', speechInstruction: '' },
   }
   if (protocol === 'custom') return {
     protocol, name: '自定义本地模型（Custom local model）', baseURL: 'http://127.0.0.1:8880/v1', apiKey: '', streaming: false, maxTextLength: 4096,
@@ -223,6 +230,12 @@ export function pcmWav(data, sampleRate = 24000) {
 }
 
 function payload(profile, text, format, streaming, selection) {
+  if (profile.protocol === 'deepseek') {
+    if (selection.speechInstruction) return fail('external-option-unsupported', 400)
+    const body = { text, voice_id: selection.voice, format, filter_markdown: false }
+    if (Buffer.byteLength(JSON.stringify(body)) > 65536 || [...text].reduce((n, c) => n + (/\p{Script=Han}/u.test(c) ? 2 : 1), 0) > 10000) return fail('text-too-long', 413)
+    return body
+  }
   if (profile.protocol === 'elevenlabs' || profile.protocol === 'fish') {
     if (selection.speechInstruction) return fail('external-option-unsupported', 400)
     return profile.protocol === 'elevenlabs' ? { text, model_id: selection.model, voice_settings: { speed: 1 } }
@@ -251,6 +264,7 @@ function speechResource(profile, selection, format, streaming) {
     if (!/^[a-zA-Z0-9_-]{1,200}$/u.test(selection.voice)) return fail('external-selection-invalid', 400)
     return `text-to-speech/${selection.voice}${streaming ? '/stream' : ''}?output_format=${format === 'pcm' ? 'pcm_24000' : 'mp3_44100_128'}`
   }
+  if (profile.protocol === 'deepseek') return 'tools/tts'
   if (profile.protocol === 'fish') return 'tts'
   return BINARY_PROTOCOLS.has(profile.protocol) ? 'audio/speech' : 't2a_v2'
 }
@@ -259,6 +273,7 @@ function speechHeaders(profile, selection) { return profile.protocol === 'fish' 
 
 export async function synthesize(profile, { text, format, signal, ...overrides }, transport = fetch) {
   const selection = { ...profile.selection, ...overrides }
+  if (profile.protocol === 'deepseek' && format !== 'wav') return fail('audio-format-unsupported', 400)
   if (profile.protocol === 'custom') return synthesizeCustom(profile, { text, format, signal, ...overrides }, transport)
   if (profile.protocol === 'tencent') return tencentSynthesize(profile, { text, format, signal }, selection, transport)
   if (profile.protocol === 'aliyun') {
@@ -410,7 +425,7 @@ function discoveryResult(results, kinds) {
 }
 
 export async function discover(profile, transport = fetch, signal = AbortSignal.timeout(20000)) {
-  if (profile.protocol === 'aliyun' || profile.protocol === 'tencent' || profile.protocol === 'custom') {
+  if (profile.protocol === 'aliyun' || profile.protocol === 'tencent' || profile.protocol === 'custom' || profile.protocol === 'deepseek') {
     signal.throwIfAborted()
     // These adapters have no implemented read-only account catalog API. Never
     // report static defaults as an authenticated connection or bill for a probe.
