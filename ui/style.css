@@ -112,7 +112,7 @@ h3 { font-size: 14px; font-weight: 600 }
 .stepper-step[data-state=upcoming] .stepper-copy strong { color: var(--muted-foreground); font-weight: 500 }
 .stepper-link { flex: 0 0 14px; height: 1px; background: var(--border); margin: 0 2px }
 .step-body { display: flex; flex-direction: column; gap: 20px; min-width: 0 }
-.step-nav { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: none }
+.step-nav { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex: 0 1 auto; flex-wrap: wrap }
 .step-nav button { min-width: 76px }
 .manual-note { padding: 0 24px; margin: 0 0 4px }
 .summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px }
@@ -226,7 +226,7 @@ button.input-addon { border: 0; background: transparent; min-height: 28px; font-
 }
 @container manager (max-width: 540px) {
   .save-bar { gap: 12px; flex-wrap: wrap; padding: 12px 0 }
-  .save-bar > .actions { justify-content: stretch; width: 100% }
+  .save-bar > .actions { justify-content: stretch; width: 100%; flex-wrap: wrap }
   .save-bar > .actions > button { flex: 1 }
   #language { max-width: 100px }
   .provider-sidebar { grid-template-columns: minmax(0, 1fr); gap: 12px }
@@ -265,11 +265,10 @@ button.input-addon { border: 0; background: transparent; min-height: 28px; font-
 .probe-field .actions { justify-content: flex-start }
 .probe-results { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px }
 .probe-results button { font-variant-numeric: tabular-nums }
-.api-key-link { display: inline-flex; align-items: center; align-self: flex-start; flex-wrap: wrap; gap: 4px 8px; max-width: 100%; min-height: 36px; margin: 0 0 14px; padding: 7px 12px; border: 1px solid #91a9ef; border-radius: 8px; background: #edf2ff; color: #2446a3; font-size: 13px; font-weight: 600; text-decoration: none }
+.api-key-link { display: inline-flex; align-items: center; align-self: flex-start; flex-wrap: wrap; gap: 4px 8px; max-width: 100%; min-height: 36px; margin: 0; padding: 7px 12px; border: 1px solid #91a9ef; border-radius: 8px; background: #edf2ff; color: #2446a3; font-size: 13px; font-weight: 600; text-decoration: none }
 .api-key-link:hover { background: #dfe8ff; border-color: #607fd5 }
 .api-key-link:focus-visible { outline: 2px solid #526fce; outline-offset: 2px }
 @media (prefers-color-scheme: dark) { :root .api-key-link { background: #222f50; border-color: #7191e2; color: #d6e2ff } :root .api-key-link:hover { background: #304169 } }
 :host-context(body[data-ds-dark-theme]) .api-key-link { background: #222f50; border-color: #7191e2; color: #d6e2ff }
 :host-context(body[data-ds-dark-theme]) .api-key-link:hover { background: #304169 }
-.referral-label { font-size: 11px; font-weight: 400; text-decoration: underline; text-underline-offset: 2px }
 @media (pointer: coarse) { .api-key-link { min-height: 44px } }

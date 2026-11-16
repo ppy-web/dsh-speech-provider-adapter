@@ -186,5 +186,9 @@
   "probeHint": "在 127.0.0.1 上扫描常见本地服务端口；点击结果填入 Base URL。",
   "probeFound": "探测到 {count} 个可用本地端口。",
   "probeNone": "未发现可访问的本地端口，请确认服务已启动。",
-  "usePort": "使用"
+  "usePort": "使用",
+  "inworldKeyHint": "填写 Portal 提供的 Base64 API Key 原文，无需添加 Basic 或再次编码。",
+  "googleKeyHint": "启用 Cloud Text-to-Speech API 和结算后，填写可用于该服务的 Google Cloud API Key；如果项目要求身份认证，可填写 Bearer 加 OAuth 访问令牌（令牌会过期）。不支持服务账号 JSON。",
+  "google-service-blocked": "Google 拒绝此密钥访问 Cloud Text-to-Speech：请检查密钥的 API 限制，并确认该密钥所属项目已启用 Cloud Text-to-Speech API。",
+  "google-billing-disabled": "Google Cloud 项目未启用结算，请关联有效的结算账号。"
 }

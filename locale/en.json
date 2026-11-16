@@ -186,5 +186,9 @@
   "probeHint": "Scan common local service ports on 127.0.0.1; click a result to fill the Base URL.",
   "probeFound": "Found {count} reachable local port(s).",
   "probeNone": "No reachable local port found. Make sure the service is running.",
-  "usePort": "Use"
+  "usePort": "Use",
+  "inworldKeyHint": "Paste the Base64 API key from the Portal unchanged, without Basic or re-encoding.",
+  "googleKeyHint": "Enable Cloud Text-to-Speech and billing, then enter a Google Cloud API key accepted by the service. If identity authentication is required, enter Bearer followed by an OAuth access token (tokens expire). Service account JSON is not supported.",
+  "google-service-blocked": "Google blocked this key from Cloud Text-to-Speech. Check its API restrictions and enable the Cloud Text-to-Speech API in the key’s project.",
+  "google-billing-disabled": "Billing is disabled for the Google Cloud project. Link an active billing account."
 }

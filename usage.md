@@ -16,7 +16,7 @@
 
 页面提供供应商注册与获取密钥入口，切换配置步骤时保持可见；腾讯云使用 SecretId / SecretKey。OpenAI 兼容协议指向 OpenAI 官方平台；其他兼容服务请前往对应平台。百炼密钥需要与业务空间地域一致。
 
-页面按“连接供应商 → 配置模型列表 → 配置音色列表 → 保存与接管”四步条组织，可点击步骤条或标题旁的上一步、下一步切换，未保存的配置会保留。连接步骤提供测试连接与“拉取模型与音色”，模型和音色步骤从供应商接口拉取目录（按 ID 去重追加、不覆盖已修改的条目），也可手动添加和修改自定义条目，并支持按名称或 ID 搜索。每个列表用单选项标记当前使用的模型/音色，密钥框可临时显示或隐藏当前输入。顶部保存栏在滚动时保留；左侧提供全局“接管语音合成”按钮（统一控制所有供应商，点击后按钮底色变化示意开启/关闭），设为当前供应商以及表单编辑都在“保存与接管”步骤确认并在保存后生效。
+页面按“连接供应商 → 配置模型列表 → 配置音色列表 → 保存与接管”四步条组织，可点击步骤条或标题旁的上一步、下一步切换，未保存的配置会保留。连接步骤提供测试连接与“拉取模型与音色”，模型和音色步骤从供应商接口拉取目录（按 ID 去重追加、不覆盖已修改的条目），也可手动添加和修改自定义条目，并支持按名称或 ID 搜索。每个列表用单选项标记当前使用的模型/音色，密钥框可临时显示或隐藏当前输入。顶部保存栏在滚动时保留，提供“设为当前供应商”快捷按钮；切换会同时保存当前草稿。获取 API Key 的链接位于上一步、下一步按钮左侧。左侧提供全局“接管语音合成”按钮（统一控制所有供应商，点击后按钮底色变化示意开启/关闭），设为当前供应商以及表单编辑都在“保存与接管”步骤确认并在保存后生效。
 
 宽设置区左侧列出供应商并支持搜索，供应商较多时可在列表内滚动；点击“新增”会弹出协议选项。窄设置区改用下拉选择，正在编辑的配置与实际生效的供应商分别标识。模型与音色分列在各自的步骤中，支持按名称或 ID 搜索，长列表通过“显示更多”继续加载；模型能力与音色适用范围按需展开。流式、单次文本上限、语音指令与删除配置位于“保存与接管”步骤，目录筛选不会修改保存的条目。
 
@@ -45,10 +45,12 @@ dsh plugin --profile web add dsh-speech-provider-adapter@latest
 
 ## 服务商预设
 
-“新增”中包含 SenseAudio（商汤）、OpenAI compatible（OpenAI 兼容）、MiniMax（稀宇科技）、SiliconFlow（硅基流动）、ElevenLabs、Fish Audio、Alibaba Cloud Bailian（阿里云百炼）、Tencent Cloud（腾讯云）、DeepSeek TTS，以及 Xiaomi MiMo TTS（小米）、豆包 Seed TTS（火山引擎）、Breeze Blue TTS 和完全自定义本地模型（Custom local model）。预设只建立草稿，不会开启接管、写入密钥或调用付费合成。以下新增预设按官方接口文档整理，未使用真实账号实测；模型、音色与账号权限以供应商当前服务为准。中文备注用于协议选项和新建预设名称，已有配置名称保持用户保存的值。
+“新增”中包含 SenseAudio（商汤）、OpenAI compatible（OpenAI 兼容）、MiniMax（稀宇科技）、SiliconFlow（硅基流动）、ElevenLabs、Fish Audio、Alibaba Cloud Bailian（阿里云百炼）、Tencent Cloud（腾讯云）、DeepSeek TTS、Inworld AI、Google Cloud Text-to-Speech，以及 Xiaomi MiMo TTS（小米）、豆包 Seed TTS（火山引擎）、Breeze Blue TTS 和完全自定义本地模型（Custom local model）。预设只建立草稿，不会开启接管、写入密钥或调用付费合成。以下新增预设按官方接口文档整理，未使用真实账号实测；模型、音色与账号权限以供应商当前服务为准。中文备注用于协议选项和新建预设名称，已有配置名称保持用户保存的值。
 
 | 服务商 | 协议与默认配置 | 使用差异与官方参考 |
 | --- | --- | --- |
+| Google Cloud Text-to-Speech | Cloud TTS v1 同步 REST，音色和语言绑定 | 在 Google Cloud 启用 Cloud Text-to-Speech API 和结算；填写可用于该服务、限制到该 API 的 Google Cloud API Key；如果项目要求身份认证，可填写 `Bearer <OAuth访问令牌>`（令牌过期后需更新）。不可填写服务账号 JSON。自动拉取中文普通话和粤语音色；其他语言可在目录管理中手动添加。每个音色 ID 使用 `语言代码/音色名称`，如 `cmn-CN/cmn-CN-Standard-A`；模型栏为统一目录分组，不传作 Google 模型 ID。完整 WAV / MP3，当前不支持实时流或语音指令；单次文本最多 5000 UTF-8 字节，插件保守限制 1250 字符。[官方文档](https://docs.cloud.google.com/text-to-speech/docs/reference/rest/v1/text/synthesize) |
+| Inworld AI | 原生 TTS API；inworld-tts-2 / inworld-tts-2-flash，Ashley / Dennis 示例音色 | 在 [Inworld Portal](https://platform.inworld.ai/) 创建 API Key，填写原样 Base64 凭据，无需添加 Basic 或再次编码。音色可从工作区分页拉取，模型为预设；支持 WAV、MP3 和 24 kHz PCM HTTP 流。单次上限 2000 UTF-16 代码单元（含语音指令），TTS-2 支持自然语言语音指令；Flash 不支持。详见 [官方 API](https://docs.inworld.ai/api-reference/ttsAPI/texttospeech/synthesize-speech)。 |
 | SiliconFlow（硅基流动） | OpenAI 风格的专用适配；CosyVoice2 0.5B，8 个系统音色 | 音色 ID 带模型前缀并限定适用模型；PCM 显式请求 24000 Hz，HTTP 流式发送 stream；CosyVoice2 指令拼入 input 的 endofprompt 前缀。[注册与获取密钥](https://cloud.siliconflow.cn/i/DhJESocy) |
 | ElevenLabs | 原生协议；Multilingual v2 / Flash v2.5，George 示例音色 | 使用 xi-api-key；合成及 HTTP 流式指定 pcm_24000 或 MP3；模型与账号音色分别查询，音色读取跟随 v2 分页。[注册与获取密钥](https://try.elevenlabs.io/ongth4qh6gaw) |
 | Fish Audio | 原生协议；S2.1 Pro、S2.1 Pro Free、S2 Pro、S1，音色初始为空 | 合成模型放在 model 请求头，音色对应 reference_id。刷新读取自己工作区的音色；公共音色或其他可用参考 ID 可手动加入。[注册与获取密钥](https://fish.audio/?aff=EYEI4TKZPE26I) |
@@ -58,6 +60,10 @@ dsh plugin --profile web add dsh-speech-provider-adapter@latest
 | 豆包 Seed TTS（火山引擎） | WebSocket 双向流；seed-tts-2.0 / seed-icl-2.0，30 个精选音色 | `X-Api-Key` 与 `X-Api-Resource-Id=模型`；`ark-` 密钥自动改用 agent-plan 地址；返回 24 kHz PCM16，可完整音频或流式；seed-icl 为复刻音色、不支持语音指令。[音色列表](https://docs.volcengine.com/docs/DoubaoVoice/Tonelist-1?lang=zh) |
 | Breeze Blue TTS | 原生 HTTP 二进制；固定 breeze-tts-2，30 个预设音色 | `xi-api-key`；`/text-to-speech/{voice}` 返回 WAV/MP3，`/stream` 返回 PCM；单次上限 1000 字。[注册与获取密钥](https://breezeblue.ai/zh?code=JHKLSJ) |
 | 自定义本地模型（Custom local model） | 原生 HTTP；默认 OpenAI 风格 `POST {BaseURL}/audio/speech`，返回二进制音频 | 仅需本地 Base URL，API Key 可选；请求方法、路径、请求头、JSON 请求体模板、取音方式与音频格式均在“高级选项”中自定义；手动目录，测试连接与刷新不可用。 |
+
+### Google Cloud Text-to-Speech 排查
+
+测试连接使用音色目录，不会生成付费语音。若提示 Google 禁止密钥访问服务，在 [API 控制台](https://console.cloud.google.com/apis/credentials)选择该密钥所属项目，检查密钥的 API 限制是否允许 Cloud Text-to-Speech API；在同一项目[启用该 API](https://console.cloud.google.com/apis/library/texttospeech.googleapis.com)，并确认结算已关联。更改权限后等待生效再重试。401 或“密钥无效或无权限”也可能表示凭据类型不匹配：Cloud TTS 的 API Key、其他供应商密钥和 OAuth 访问令牌不能混用；访问令牌需要加 `Bearer ` 前缀，且会过期。
 
 ### 阿里云百炼
 

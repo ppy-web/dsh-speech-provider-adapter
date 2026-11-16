@@ -9,7 +9,7 @@ const protocols = [{ id: 'senseaudio', name: 'SenseAudio（商汤）' }, { id: '
   { id: 'siliconflow', name: 'SiliconFlow（硅基流动）' }, { id: 'elevenlabs', name: 'ElevenLabs' }, { id: 'fish', name: 'Fish Audio' },
   { id: 'aliyun', name: 'Alibaba Cloud Bailian（阿里云百炼）' }, { id: 'tencent', name: 'Tencent Cloud（腾讯云）' },
   { id: 'xiaomi', name: 'Xiaomi MiMo TTS（小米）' }, { id: 'doubao', name: '豆包 Seed TTS（火山引擎）' }, { id: 'breeze', name: 'Breeze Blue TTS' },
-  { id: 'deepseek', name: 'DeepSeek TTS' }, { id: 'custom', name: '自定义本地模型（Custom local model）' }]
+  { id: 'deepseek', name: 'DeepSeek TTS' }, { id: 'inworld', name: 'Inworld AI' }, { id: 'google', name: 'Google Cloud Text-to-Speech' }, { id: 'custom', name: '自定义本地模型（Custom local model）' }]
 const DEFAULT_CUSTOM = {
   method: 'POST', path: 'audio/speech', bodyType: 'json',
   headers: [{ name: 'Authorization', value: 'Bearer {{apiKey}}' }],
@@ -19,6 +19,8 @@ const DEFAULT_CUSTOM = {
 const manualCatalog = profile => ['aliyun', 'tencent', 'custom', 'deepseek'].includes(profile.protocol)
 // Provider signup or credential pages; some are referral links.
 const API_KEY_LINKS = {
+  google: 'https://console.cloud.google.com/apis/library/texttospeech.googleapis.com',
+  inworld: 'https://platform.inworld.ai/',
   deepseek: 'https://platform.deepseek.com/api_keys',
   senseaudio: 'https://senseaudio.cn/api-platform/api-key',
   openai: 'https://platform.openai.com/api-keys',
@@ -66,6 +68,9 @@ export function mountManager(surface, notify) {
   function toolbar() {
     $('save').disabled = busy || !dirty
     $('save').textContent = t(busy && busyKind === 'saving' ? 'saving' : 'save')
+    const profile = state?.profiles.find(item => item.id === selected)
+    $('activate').disabled = busy || !profile || state.activeId === profile.id
+    $('activate').textContent = t(profile && state.activeId === profile.id ? 'currentProvider' : 'activate')
     $('discard').disabled = busy || !dirty
     $('add').disabled = busy || !state
     $('provider-search').disabled = busy || !state?.profiles.length
@@ -92,8 +97,9 @@ export function mountManager(surface, notify) {
   }
   function compatibleVoices(profile) { return profile.voices.filter(voice => !voice.modelIds?.length || voice.modelIds.includes(profile.selection.model)) }
   function modelSupports(profile, model) {
-    if (profile.protocol === 'tencent' || profile.protocol === 'deepseek') return false
+    if (profile.protocol === 'tencent' || profile.protocol === 'deepseek' || profile.protocol === 'google') return false
     if (profile.protocol === 'custom') return model.speechInstruction === true
+    if (profile.protocol === 'inworld') return model.id === 'inworld-tts-2'
     const supported = profile.protocol === 'openai' ? /^gpt-4o-mini-tts(?:-|$)/u.test(model.id)
       : profile.protocol === 'aliyun' ? /^qwen-audio-3\.[01]-tts-(?:flash|plus)$/u.test(model.id)
         : profile.protocol === 'siliconflow' ? /CosyVoice2/iu.test(model.id) : profile.protocol === 'minimax' && /^speech-(?:2\.[68]|0[12])-/u.test(model.id)
@@ -186,10 +192,11 @@ export function mountManager(surface, notify) {
     return node('div', { class: 'card-header' }, node('div', {}, node('h3', { class: 'card-title' }, title), ...(hint ? [node('p', { class: 'hint' }, hint)] : [])),
       ...(actions.length ? [node('div', { class: 'actions' }, ...actions)] : []))
   }
-  function stepNav(profile) {
+  function stepNav(profile, keyLink) {
     const index = STEPS.indexOf(step)
     const back = STEPS[index - 1], next = STEPS[index + 1]
     return node('nav', { class: 'step-nav', 'aria-label': t('stepProgress') },
+      ...(keyLink ? [keyLink] : []),
       button(t('prevStep'), () => goStep(profile, back), { disabled: busy || !back, 'data-focus-key': 'step-previous' }),
       button(t('nextStep'), () => goStep(profile, next), { class: 'primary', disabled: busy || !next, 'data-focus-key': 'step-next' }))
   }
@@ -219,6 +226,8 @@ export function mountManager(surface, notify) {
         ...(profile.protocol === 'custom' ? [probeField(profile)] : []),
         ...(tencent ? [credentialField(profile, 'secretId', 'secretIdConfigured', 'SecretId')] : []),
         credentialField(profile, 'apiKey', 'keyConfigured', tencent ? 'SecretKey' : profile.protocol === 'custom' ? `${t('apiKey')}（${t('optional')}）` : t('apiKey')),
+        ...(profile.protocol === 'inworld' ? [node('p', { class: 'field-description full' }, t('inworldKeyHint'))] : []),
+        ...(profile.protocol === 'google' ? [node('p', { class: 'field-description full' }, t('googleKeyHint'))] : []),
         ...(profile.protocol === 'custom' ? [customAdvanced(profile)] : [])),
       node('div', { class: 'card-footer' }, node('p', { class: 'field-description' }, t(manual ? 'manualCatalogHint' : 'connectHint')),
         node('div', { class: 'actions' },
@@ -405,7 +414,7 @@ export function mountManager(surface, notify) {
       : node('textarea', { value: profile.selection.speechInstruction ?? '', maxLength: 4096, disabled: busy, 'data-focus-key': 'speech-instruction', oninput: event => { profile.selection.speechInstruction = event.target.value; changed() } }), '', true))
     else fields.append(node('p', { class: 'hint selection-note' }, t('unsupported')))
     fields.append(field(t('maxTextLength'), input(profile.maxTextLength, value => { profile.maxTextLength = Number(value) }, { type: 'number', min: 1, max: profile.protocol === 'tencent' ? 150 : profile.protocol === 'custom' ? 4096 : 10000 })))
-    const streamingSupported = profile.protocol !== 'tencent' && !(profile.protocol === 'custom' && !(profile.custom?.audioFormat === 'pcm' && profile.custom?.sampleRate === 24000))
+    const streamingSupported = profile.protocol !== 'tencent' && profile.protocol !== 'google' && !(profile.protocol === 'custom' && !(profile.custom?.audioFormat === 'pcm' && profile.custom?.sampleRate === 24000))
     const streamingInput = node('input', { type: 'checkbox', role: 'switch', checked: streamingSupported && profile.streaming, disabled: busy || !streamingSupported, 'aria-label': t('streaming'), 'data-focus-key': 'streaming-switch',
       onchange: event => { profile.streaming = event.target.checked; changed() } })
     const deleteButton = button(t(deleteId === profile.id ? 'confirmDelete' : 'delete'), () => {
@@ -506,13 +515,13 @@ export function mountManager(surface, notify) {
       const keyLink = API_KEY_LINKS[profile.protocol] ? node('a', {
         class: 'api-key-link', href: API_KEY_LINKS[profile.protocol], target: '_blank', rel: 'noopener noreferrer', 'data-focus-key': 'get-api-key',
         title: t(isReferral ? 'referralLinkHint' : profile.protocol === 'openai' ? 'openaiKeyLinkHint' : 'apiKeyLinkHint', { provider: protocolName(profile.protocol) }),
-      }, t(profile.protocol === 'tencent' ? 'getCloudKeys' : 'getApiKey'), ...(isReferral ? [node('span', { class: 'referral-label' }, t('referralLabel'))] : [])) : null
+      }, t(profile.protocol === 'tencent' ? 'getCloudKeys' : 'getApiKey')) : null
       const header = node('div', { class: 'profile-heading' }, node('div', {}, node('h2', { id: 'profile-name' }, profile.name || t('unnamed')),
-        node('p', { class: 'profile-context' }, t(current ? 'editingCurrent' : 'editingOther'))), stepNav(profile))
+        node('p', { class: 'profile-context' }, t(current ? 'editingCurrent' : 'editingOther'))), stepNav(profile, keyLink))
       const stepItems = STEPS.map(id => ({ id, name: stepLabel(id), done: stepDone(profile, id), current: step === id }))
       const bar = stepper(stepItems, id => goStep(profile, id), t('stepProgress'), busy)
       const content = step === 'connect' ? connectionStep(profile) : step === 'models' ? catalogStep(profile, 'models') : step === 'voices' ? catalogStep(profile, 'voices') : finishStep(profile)
-      $('editor').replaceChildren(header, ...(keyLink ? [keyLink] : []), bar, content)
+      $('editor').replaceChildren(header, bar, content)
     }
     toolbar()
     if ($('catalog-list')) $('catalog-list').scrollTop = scrollTop
@@ -531,6 +540,7 @@ export function mountManager(surface, notify) {
       changed()
     }, 'adding')
   }
+  $('activate').onclick = () => { const profile = state?.profiles.find(item => item.id === selected); if (profile) void activate(profile) }
   $('save').onclick = () => persist()
   $('discard').onclick = () => action(async () => { await load(); message() }, 'loading')
   $('provider-search').oninput = event => { profileSearch = event.target.value; renderProfiles() }

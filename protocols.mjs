@@ -5,7 +5,7 @@ import { synthesizeCustom, streamCustom } from './custom-provider.mjs'
 
 const MAX_AUDIO = 32 * 1024 * 1024
 const fail = (code, status = 502) => { throw new TtsProviderError(code, undefined, status) }
-export const PROTOCOLS = ['senseaudio', 'openai', 'minimax', 'siliconflow', 'elevenlabs', 'fish', 'aliyun', 'tencent', 'xiaomi', 'doubao', 'breeze', 'deepseek', 'custom']
+export const PROTOCOLS = ['senseaudio', 'openai', 'minimax', 'siliconflow', 'elevenlabs', 'fish', 'aliyun', 'tencent', 'xiaomi', 'doubao', 'breeze', 'deepseek', 'inworld', 'google', 'custom']
 const BINARY_PROTOCOLS = new Set(['openai', 'siliconflow', 'elevenlabs', 'fish', 'deepseek'])
 const FISH_MODELS = ['s2.1-pro', 's2.1-pro-free', 's2-pro', 's1']
 const XIAOMI_MODELS = ['mimo-v2.5-tts']
@@ -38,6 +38,8 @@ const emotions = ['happy', 'sad', 'angry', 'fearful', 'disgusted', 'surprised', 
 const interjections = ['laughs', 'chuckle', 'coughs', 'clear-throat', 'groans', 'breath', 'pant', 'inhale', 'exhale', 'gasps', 'sniffs', 'sighs', 'snorts', 'burps', 'lip-smacking', 'humming', 'hissing', 'emm', 'sneezes']
 
 export function modelFeatures(protocol, model, profile) {
+  if (protocol === 'google') return { streaming: false, speechInstruction: false }
+  if (protocol === 'inworld') return { streaming: model.streaming !== false, speechInstruction: model.id === 'inworld-tts-2' }
   if (protocol === 'deepseek') return { streaming: model.streaming !== false, speechInstruction: false }
   if (protocol === 'custom') {
     const custom = profile?.custom
@@ -123,6 +125,18 @@ export function preset(protocol = 'senseaudio') {
     voices: [{ id: 'stella', name: 'Stella' }, { id: 'tide', name: 'Tide' }],
     selection: { model: 'deepseek-tts', voice: 'stella', speechInstruction: '' },
   }
+  if (protocol === 'google') return {
+    protocol, name: 'Google Cloud Text-to-Speech', baseURL: 'https://texttospeech.googleapis.com', apiKey: '', streaming: false, maxTextLength: 1250,
+    models: [{ id: 'google-cloud-tts', name: 'Cloud Text-to-Speech', streaming: false, speechInstruction: false }],
+    voices: [{ id: 'cmn-CN/cmn-CN-Standard-A', name: 'cmn-CN-Standard-A' }, { id: 'en-US/en-US-Standard-C', name: 'en-US-Standard-C' }],
+    selection: { model: 'google-cloud-tts', voice: 'cmn-CN/cmn-CN-Standard-A', speechInstruction: '' },
+  }
+  if (protocol === 'inworld') return {
+    protocol, name: 'Inworld AI', baseURL: 'https://api.inworld.ai', apiKey: '', streaming: true, maxTextLength: 2000,
+    models: ['inworld-tts-2', 'inworld-tts-2-flash'].map(id => ({ id, name: id })),
+    voices: [{ id: 'Ashley', name: 'Ashley' }, { id: 'Dennis', name: 'Dennis' }],
+    selection: { model: 'inworld-tts-2', voice: 'Ashley', speechInstruction: '' },
+  }
   if (protocol === 'custom') return {
     protocol, name: '自定义本地模型（Custom local model）', baseURL: 'http://127.0.0.1:8880/v1', apiKey: '', streaming: false, maxTextLength: 4096,
     models: [{ id: 'tts-1', name: '默认模型 / Default model', speechInstruction: true }],
@@ -161,12 +175,20 @@ async function request(profile, resource, body, signal, transport = fetch, { ver
   signal.throwIfAborted()
   const response = await transport(endpoint(profile.baseURL, resource, version), {
     method: body === undefined ? 'GET' : 'POST', redirect: 'error', signal,
-    headers: { ...(profile.protocol === 'elevenlabs' ? { 'xi-api-key': profile.apiKey } : { authorization: `Bearer ${profile.apiKey}` }),
+    headers: { ...(profile.protocol === 'google' ? (profile.apiKey.startsWith('Bearer ') ? { authorization: profile.apiKey } : { 'x-goog-api-key': profile.apiKey }) : profile.protocol === 'elevenlabs' ? { 'xi-api-key': profile.apiKey } : { authorization: `${profile.protocol === 'inworld' ? 'Basic' : 'Bearer'} ${profile.apiKey}` }),
       ...(body === undefined ? {} : { 'content-type': 'application/json' }), ...headers },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
   })
   if (!response.ok) {
-    await response.body?.cancel()
+    if (profile.protocol === 'google' && [400, 403].includes(response.status)) {
+      let reasons = []
+      try {
+        const value = JSON.parse((await boundedBody(response, signal, 65536)).toString('utf8'))
+        reasons = Array.isArray(value?.error?.details) ? value.error.details.map(item => item?.reason) : []
+      } catch (error) { signal.throwIfAborted() }
+      if (reasons.some(reason => reason === 'API_KEY_SERVICE_BLOCKED' || reason === 'SERVICE_DISABLED')) return fail('google-service-blocked', 502)
+      if (reasons.includes('BILLING_DISABLED')) return fail('google-billing-disabled', 502)
+    } else await response.body?.cancel()
     fail(response.status === 401 || response.status === 403 ? 'api-key-rejected' : response.status === 402 ? 'external-quota-exceeded' : response.status === 429 ? 'rate-limited' : 'external-upstream-failed', response.status === 429 ? 429 : 502)
   }
   return response
@@ -274,6 +296,8 @@ function speechHeaders(profile, selection) { return profile.protocol === 'fish' 
 export async function synthesize(profile, { text, format, signal, ...overrides }, transport = fetch) {
   const selection = { ...profile.selection, ...overrides }
   if (profile.protocol === 'deepseek' && format !== 'wav') return fail('audio-format-unsupported', 400)
+  if (profile.protocol === 'google') return synthesizeGoogle(profile, text, format, selection, signal, transport)
+  if (profile.protocol === 'inworld') return synthesizeInworld(profile, text, format, selection, signal, transport)
   if (profile.protocol === 'custom') return synthesizeCustom(profile, { text, format, signal, ...overrides }, transport)
   if (profile.protocol === 'tencent') return tencentSynthesize(profile, { text, format, signal }, selection, transport)
   if (profile.protocol === 'aliyun') {
@@ -313,6 +337,8 @@ export async function synthesize(profile, { text, format, signal, ...overrides }
 /** Parses complete SSE records across arbitrary byte boundaries, with bounded buffering. */
 export async function* streamPcm(profile, { text, signal, ...overrides }, transport = fetch) {
   const selection = { ...profile.selection, ...overrides }
+  if (profile.protocol === 'google') return fail('external-streaming-unsupported', 400)
+  if (profile.protocol === 'inworld') { yield* streamInworld(profile, text, selection, signal, transport); return }
   if (profile.protocol === 'custom') { yield* streamCustom(profile, { text, signal, ...overrides }, transport); return }
   if (profile.protocol === 'tencent') return fail('external-streaming-unsupported', 400)
   if (profile.protocol === 'aliyun') { yield* aliyunAudio(profile, { text, signal }, selection, 'pcm', transport); return }
@@ -381,6 +407,126 @@ export async function* streamPcm(profile, { text, signal, ...overrides }, transp
   } finally { await reader.cancel().catch(() => {}); reader.releaseLock() }
 }
 
+async function synthesizeGoogle(profile, text, format, selection, signal, transport) {
+  if (!['wav', 'mp3'].includes(format)) return fail('audio-format-unsupported', 400)
+  if (selection.speechInstruction) return fail('external-option-unsupported', 400)
+  if (Buffer.byteLength(text, 'utf8') > 5000) return fail('text-too-long', 413)
+  const slash = selection.voice.indexOf('/')
+  const language = selection.voice.slice(0, slash), voice = selection.voice.slice(slash + 1)
+  if (slash < 1 || !/^[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})+$/u.test(language) || !voice || voice.length > 200) return fail('external-selection-invalid', 400)
+  const body = { input: { text }, voice: { languageCode: language, name: voice }, audioConfig: { audioEncoding: format === 'wav' ? 'LINEAR16' : 'MP3', sampleRateHertz: 24000 } }
+  const response = await request(profile, './text:synthesize', body, signal, transport)
+  const value = checkedJson(await boundedBody(response, signal, Math.ceil(MAX_AUDIO / 3) * 4 + 65536))
+  if (value.error) return fail('external-upstream-failed')
+  const data = inworldBase64(value.audioContent)
+  if (format === 'wav' && (data.length < 12 || data.toString('ascii', 0, 4) !== 'RIFF' || data.toString('ascii', 8, 12) !== 'WAVE')) return fail('invalid-audio-format')
+  signal.throwIfAborted()
+  return { data, format }
+}
+
+async function googleVoices(profile, signal, transport) {
+  const results = await Promise.all(['zh', 'yue'].map(language => catalogJson(profile, `voices?${new URLSearchParams({ languageCode: language })}`, signal, transport)))
+  if (results.some(value => !Array.isArray(value.voices))) return fail('external-response-invalid')
+  const voices = new Map()
+  for (const voice of results.flatMap(value => value.voices)) {
+    if (typeof voice?.name !== 'string' || !voice.name.trim() || !Array.isArray(voice.languageCodes)) continue
+    for (const language of voice.languageCodes) {
+      if (typeof language !== 'string' || !/^(?:zh|cmn|yue)(?:-[a-zA-Z0-9]{2,8})+$/iu.test(language)) continue
+      const id = `${language}/${voice.name}`
+      if (id.length <= 200) voices.set(id, { id, name: `${voice.name} (${language})`.slice(0, 200) })
+      if (voices.size > 10000) return fail('external-catalog-limit', 413)
+    }
+  }
+  return [...voices.values()]
+}
+
+function inworldPayload(text, selection, format, limit) {
+  if (selection.speechInstruction && selection.model !== 'inworld-tts-2') return fail('external-option-unsupported', 400)
+  const instruction = selection.speechInstruction?.trim()
+  if (instruction && /[\[\]\r\n]/u.test(instruction)) return fail('external-option-unsupported', 400)
+  const input = instruction ? `[${instruction}] ${text}` : text
+  if (input.length > limit) return fail('text-too-long', 413)
+  return { text: input, voiceId: selection.voice, modelId: selection.model,
+    audioConfig: { audioEncoding: format === 'pcm' ? 'PCM' : 'MP3', sampleRateHertz: 24000 } }
+}
+
+function inworldBase64(value) {
+  if (typeof value !== 'string' || !value.length || value.length % 4 !== 0 || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(value)) return fail('invalid-audio-format')
+  if (value.length > Math.ceil(MAX_AUDIO / 3) * 4) return fail('audio-too-large', 413)
+  return Buffer.from(value, 'base64')
+}
+
+async function synthesizeInworld(profile, text, format, selection, signal, transport) {
+  if (!['wav', 'mp3'].includes(format)) return fail('audio-format-unsupported', 400)
+  const response = await request(profile, 'voice', inworldPayload(text, selection, format === 'wav' ? 'pcm' : 'mp3', 2000), signal, transport, { version: 'tts/v1' })
+  const value = checkedJson(await boundedBody(response, signal, Math.ceil(MAX_AUDIO / 3) * 4 + 65536))
+  if (value.error || value.code) return fail('external-upstream-failed')
+  const data = inworldBase64(value.audioContent)
+  signal.throwIfAborted()
+  return { data: format === 'wav' ? pcmWav(checkPcm(data)) : data, format }
+}
+
+async function* streamInworld(profile, text, selection, signal, transport) {
+  const response = await request(profile, './voice:stream', inworldPayload(text, selection, 'pcm', 4000), signal, transport, { version: 'tts/v1' })
+  const reader = response.body?.getReader()
+  if (!reader) return fail('external-response-invalid')
+  const decoder = new TextDecoder()
+  let pending = '', size = 0, prefix = Buffer.alloc(0), checked = false
+  const parse = line => {
+    const event = checkedJson(Buffer.from(line))
+    if (event.error || event.code) return fail('external-upstream-failed')
+    if (!event.result || typeof event.result !== 'object') return fail('external-response-invalid')
+    return event.result.audioContent ? inworldBase64(event.result.audioContent) : null
+  }
+  try {
+    while (true) {
+      signal.throwIfAborted()
+      const chunk = await reader.read()
+      signal.throwIfAborted()
+      pending += chunk.done ? decoder.decode() : decoder.decode(chunk.value, { stream: true })
+      let newline
+      while ((newline = pending.indexOf('\n')) >= 0 || (chunk.done && pending.trim())) {
+        const line = newline >= 0 ? pending.slice(0, newline) : pending
+        pending = newline >= 0 ? pending.slice(newline + 1) : ''
+        if (line.length > 2 * 1024 * 1024) return fail('stream-buffer-limit', 413)
+        if (!line.trim()) continue
+        const data = parse(line)
+        if (!data) continue
+        size += data.length
+        if (size > MAX_AUDIO) return fail('audio-too-large', 413)
+        if (!checked) {
+          prefix = Buffer.concat([prefix, data])
+          if (prefix.length < 4) continue
+          checked = true
+          yield checkPcm(prefix)
+          prefix = Buffer.alloc(0)
+        } else yield data
+      }
+      if (pending.length > 2 * 1024 * 1024) return fail('stream-buffer-limit', 413)
+      if (chunk.done) break
+    }
+    if (!size || size % 2) return fail('external-stream-incomplete')
+    if (!checked && prefix.length) yield checkPcm(prefix)
+  } finally { await reader.cancel().catch(() => {}); reader.releaseLock() }
+}
+
+async function inworldVoices(profile, signal, transport) {
+  const voices = new Map(), tokens = new Set()
+  let token = ''
+  for (let page = 0; page < 40; page++) {
+    const query = new URLSearchParams({ pageSize: '100', ...(token ? { pageToken: token } : {}) })
+    const value = await catalogJson(profile, `voices?${query}`, signal, transport, 'voices/v1')
+    if (!Array.isArray(value.voices)) return fail('external-response-invalid')
+    for (const voice of catalogRows(value.voices, 'voiceId', 'displayName')) voices.set(voice.id, voice)
+    if (voices.size > 2000) return fail('external-catalog-limit', 413)
+    token = value.nextPageToken
+    if (!token) return [...voices.values()]
+    if (typeof token !== 'string' || token.length > 2000 || tokens.has(token)) return fail('external-response-invalid')
+    tokens.add(token)
+  }
+  return fail('external-catalog-limit', 413)
+}
+
 async function catalogJson(profile, resource, signal, transport, version = 'v1') {
   return checkedJson(await boundedBody(await request(profile, resource, undefined, signal, transport, { version }), signal, 2 * 1024 * 1024))
 }
@@ -436,6 +582,14 @@ export async function discover(profile, transport = fetch, signal = AbortSignal.
     // Built-in provider catalogs are fixed presets, not account queries.
     const p = preset(profile.protocol)
     return { models: p.models.map(({ id, name }) => ({ id, name })), voices: p.voices.map(({ id, name }) => ({ id, name })), connected: true, errors: [] }
+  }
+  if (profile.protocol === 'google') {
+    const result = discoveryResult(await Promise.allSettled([googleVoices(profile, signal, transport)]), ['voices'])
+    return { ...result, models: preset('google').models }
+  }
+  if (profile.protocol === 'inworld') {
+    const result = discoveryResult(await Promise.allSettled([inworldVoices(profile, signal, transport)]), ['voices'])
+    return { ...result, models: preset('inworld').models }
   }
   if (profile.protocol === 'elevenlabs') {
     const results = await Promise.allSettled([

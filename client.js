@@ -23,20 +23,43 @@ window.__ModuleLoader__.load({ id: 'dsh-speech-provider-adapter', factory: requi
           if (revision) url.searchParams.set('v', revision)
           return url.href
         }
-        const { mountManager } = await import(versioned('app.js'))
-        if (controller.signal.aborted) return
         const style = document.createElement('link')
         style.rel = 'stylesheet'; style.href = versioned('style.css')
         const wrapper = document.createElement('section')
         wrapper.className = 'adapter-root embedded'
+        wrapper.hidden = true
         wrapper.append(...page.body.children)
-        shadow.replaceChildren(style, wrapper)
+        const loading = document.createElement('div')
+        loading.setAttribute('role', 'status')
+        loading.textContent = navigator.language.startsWith('zh') ? '正在读取配置…' : 'Loading configuration…'
+        const styleReady = new Promise((resolve, reject) => {
+          const finish = error => {
+            clearTimeout(timer)
+            style.removeEventListener('load', loaded)
+            style.removeEventListener('error', failed)
+            controller.signal.removeEventListener('abort', aborted)
+            error ? reject(error) : resolve()
+          }
+          const loaded = () => finish()
+          const failed = () => finish(new Error('manager-style-unavailable'))
+          const aborted = () => finish(new Error('manager-aborted'))
+          const timer = setTimeout(failed, 15000)
+          style.addEventListener('load', loaded, { once: true })
+          style.addEventListener('error', failed, { once: true })
+          controller.signal.addEventListener('abort', aborted, { once: true })
+        })
+        shadow.replaceChildren(style, loading, wrapper)
+        const [{ mountManager }] = await Promise.all([import(versioned('app.js')), styleReady])
+        if (controller.signal.aborted) return
         dispose = mountManager(shadow, (text, error) => {
           if (!text) { setNotice(null); return }
           setNotice({ text, error, sequence: ++sequence.current })
         })
+        loading.remove()
+        wrapper.hidden = false
       }).catch(() => {
         if (controller.signal.aborted) return
+        controller.abort()
         shadow.textContent = navigator.language.startsWith('zh') ? '无法读取供应商适配器，请确认插件已启用后重新打开。' : 'Unable to load 供应商适配器. Enable the plugin and reopen its settings.'
       })
       return () => { controller.abort(); dispose?.(); shadow.replaceChildren() }

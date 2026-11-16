@@ -53,7 +53,7 @@ export function normalizeConfig(input, previous = { profiles: [] }) {
       ...(typeof raw.models[index].streaming === 'boolean' ? { streaming: raw.models[index].streaming } : {}),
       ...(typeof raw.models[index].speechInstruction === 'boolean' ? { speechInstruction: raw.models[index].speechInstruction } : {}),
     }))
-    const voices = rows(raw.voices, 2000).map((voice, index) => {
+    const voices = rows(raw.voices, raw.protocol === 'google' ? 10000 : 2000).map((voice, index) => {
       const ids = raw.voices[index].modelIds
       if (ids !== undefined && (!Array.isArray(ids) || ids.some(id => !models.some(model => model.id === id)))) invalid()
       return { ...voice, ...(ids?.length ? { modelIds: [...new Set(ids)] } : {}) }
