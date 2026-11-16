@@ -25,6 +25,7 @@
     "doc/sense.md",
     "docs/images",
     "usage.md",
+    "intro.md",
     "LICENSE",
     "README.md"
   ],
@@ -51,7 +52,8 @@
         "@deepseek-ai/dsh-client-ui-plugin-manager"
       ],
       "external": [
-        "react"
+        "react",
+        "@deepseek-ai/dsh-client-ui-primitives"
       ]
     }
   },
@@ -59,6 +61,7 @@
     "@deepseek-ai/cordis": "~4.1.0",
     "@deepseek-ai/dsh-host-webserver": ">=0.2.2-0 <0.3.0-0",
     "@deepseek-ai/dsh-settings": ">=0.2.2-0 <0.3.0-0",
+    "@deepseek-ai/dsh-client-ui-primitives": ">=0.2.2-0 <0.3.0-0",
     "@deepseek-ai/schemastery": "~3.19.0",
     "dsh-xiaomi-tts": ">=5.2.0-next.0 <6"
   },

@@ -1,5 +1,8 @@
-import { node, stepper, icon } from './components.js'
-import { createManagerApi } from './api.js'
+// Keep dependencies on the same revision as the entry module when the host updates in place.
+const revision = new URL(import.meta.url).search
+const [{ node, stepper, icon }, { createManagerApi }] = await Promise.all([
+  import(`./components.js${revision}`), import(`./api.js${revision}`),
+])
 
 const root = new URL('./', import.meta.url)
 const protocols = [{ id: 'senseaudio', name: 'SenseAudio（商汤）' }, { id: 'openai', name: 'OpenAI compatible（OpenAI 兼容）' }, { id: 'minimax', name: 'MiniMax（稀宇科技）' },
@@ -14,26 +17,27 @@ const DEFAULT_CUSTOM = {
   response: 'binary', audioPath: 'data.audio', audioFormat: 'wav', sampleRate: 24000,
 }
 const manualCatalog = profile => ['aliyun', 'tencent', 'custom', 'deepseek'].includes(profile.protocol)
-// Official provider pages for obtaining credentials.
+// Provider signup or credential pages; some are referral links.
 const API_KEY_LINKS = {
   deepseek: 'https://platform.deepseek.com/api_keys',
   senseaudio: 'https://senseaudio.cn/api-platform/api-key',
   openai: 'https://platform.openai.com/api-keys',
   minimax: 'https://platform.minimax.io/console/keys',
-  siliconflow: 'https://cloud.siliconflow.cn/account/ak',
-  elevenlabs: 'https://elevenlabs.io/app/api/api-keys',
-  fish: 'https://fish.audio/app/developers/get-started/',
-  aliyun: 'https://bailian.console.aliyun.com/cn-beijing/model/settings/api-key',
-  tencent: 'https://console.cloud.tencent.com/cam/capi',
-  xiaomi: 'https://platform.xiaomimimo.com/',
+  siliconflow: 'https://cloud.siliconflow.cn/i/DhJESocy',
+  elevenlabs: 'https://try.elevenlabs.io/ongth4qh6gaw',
+  fish: 'https://fish.audio/?aff=EYEI4TKZPE26I',
+  aliyun: 'https://www.aliyun.com/minisite/goods?userCode=h229osnq',
+  tencent: 'https://curl.qcloud.com/xmLaElOV',
+  xiaomi: 'https://platform.xiaomimimo.com?ref=GQDDDU',
   doubao: 'https://console.volcengine.com/speech/new/setting/apikeys?projectName=default',
-  breeze: 'https://breezeblue.ai/app/developer/api-keys',
+  breeze: 'https://breezeblue.ai/zh?code=JHKLSJ',
 }
+const REFERRAL_PROTOCOLS = new Set(['siliconflow', 'elevenlabs', 'fish', 'aliyun', 'tencent', 'xiaomi', 'breeze'])
 const STEPS = ['connect', 'models', 'voices', 'finish']
 const STEP_KEYS = { connect: 'stepConnect', models: 'stepModels', voices: 'stepVoices', finish: 'stepFinish' }
 
 /** Mount in the host settings surface; disposal aborts requests and removes window listeners. */
-export function mountManager(surface) {
+export function mountManager(surface, notify) {
   const controller = new AbortController()
   const { signal } = controller
   const api = createManagerApi(root, signal)
@@ -54,6 +58,7 @@ export function mountManager(surface) {
   const button = (label, onclick, attrs = {}) => node('button', { type: 'button', onclick, disabled: busy, 'data-focus-key': attrs['data-focus-key'] ?? attrs['aria-label'] ?? label, ...attrs }, label)
   function message(value = '', error = false) {
     if (signal.aborted) return
+    if (notify) { notify(value, error); return }
     $('message').textContent = value
     $('message').dataset.error = String(error)
     $('message').setAttribute('role', error ? 'alert' : 'status')
@@ -181,10 +186,12 @@ export function mountManager(surface) {
     return node('div', { class: 'card-header' }, node('div', {}, node('h3', { class: 'card-title' }, title), ...(hint ? [node('p', { class: 'hint' }, hint)] : [])),
       ...(actions.length ? [node('div', { class: 'actions' }, ...actions)] : []))
   }
-  function stepNav(profile, back, next, nextLabel) {
-    return node('div', { class: 'step-nav' },
-      back ? button(t('prevStep'), () => goStep(profile, back), { class: 'quiet', 'data-focus-key': `nav-back-${back}` }) : node('span', {}),
-      next ? button(nextLabel || t('nextStep'), () => goStep(profile, next), { class: 'primary', 'data-focus-key': `nav-next-${next}` }) : node('span', {}))
+  function stepNav(profile) {
+    const index = STEPS.indexOf(step)
+    const back = STEPS[index - 1], next = STEPS[index + 1]
+    return node('nav', { class: 'step-nav', 'aria-label': t('stepProgress') },
+      button(t('prevStep'), () => goStep(profile, back), { disabled: busy || !back, 'data-focus-key': 'step-previous' }),
+      button(t('nextStep'), () => goStep(profile, next), { class: 'primary', disabled: busy || !next, 'data-focus-key': 'step-next' }))
   }
 
   function credentialField(profile, property, configured, label) {
@@ -204,10 +211,7 @@ export function mountManager(surface) {
   function connectionFields(profile) {
     const tencent = profile.protocol === 'tencent'
     const manual = manualCatalog(profile)
-    const keyLink = API_KEY_LINKS[profile.protocol]
-      ? node('a', { class: 'api-key-link', href: API_KEY_LINKS[profile.protocol], target: '_blank', rel: 'noopener noreferrer', 'data-focus-key': 'get-api-key', title: t(profile.protocol === 'openai' ? 'openaiKeyLinkHint' : 'apiKeyLinkHint', { provider: protocolName(profile.protocol) }) }, t(profile.protocol === 'tencent' ? 'getCloudKeys' : 'getApiKey'))
-      : null
-    return node('section', { class: 'card form-section' }, sectionHeading(t('stepConnect'), t('connectionHint'), keyLink ? [keyLink] : []),
+    return node('section', { class: 'card form-section' }, sectionHeading(t('stepConnect'), t('connectionHint')),
       node('div', { class: 'field-group fields card-content' },
         field(t('name'), input(profile.name, value => { profile.name = value; const heading = $('profile-name'); if (heading) heading.textContent = value || t('unnamed'); renderProfiles() }, { maxLength: 120 })),
         field(t('protocol'), select(profile.protocol, protocols, id => { profile.protocol = id; profile.selection.speechInstruction = ''; if (id === 'custom' && !profile.custom) profile.custom = structuredClone(DEFAULT_CUSTOM) }), t('protocolHint')),
@@ -221,7 +225,7 @@ export function mountManager(surface) {
           button(t('test'), () => query(profile, false), { disabled: busy || manual, 'data-focus-key': 'test-connection' }),
           button(t('pullCatalogs'), () => query(profile, true, 'models'), { class: 'primary', disabled: busy || manual, 'data-focus-key': 'fetch-connection' }))))
   }
-  function connectionStep(profile) { return node('div', { class: 'step-body' }, connectionFields(profile), stepNav(profile, null, 'models')) }
+  function connectionStep(profile) { return node('div', { class: 'step-body' }, connectionFields(profile)) }
 
   function probeField(profile) {
     const results = probeResults
@@ -380,7 +384,7 @@ export function mountManager(surface) {
       ...(!isModels && !profile.selection.model ? [node('p', { class: 'hint manual-note' }, t('chooseModelFirst'))] : []),
       node('div', { class: 'catalog-toolbar' }, node('div', { class: 'catalog-tools' }, search, addButton)),
       rows, footer)
-    return node('div', { class: 'step-body' }, card, stepNav(profile, isModels ? 'connect' : 'models', isModels ? 'voices' : 'finish'))
+    return node('div', { class: 'step-body' }, card)
   }
 
   function summaryItem(label, value, sub) {
@@ -428,7 +432,7 @@ export function mountManager(surface) {
         node('div', { class: 'actions' },
           button(t(state.activeId === profile.id ? 'currentProvider' : 'activate'), () => activate(profile), { disabled: busy || state.activeId === profile.id, 'data-focus-key': 'finish-activate' }),
           button(t(busy && busyKind === 'saving' ? 'saving' : 'save'), () => persist(), { class: 'primary', disabled: busy || !dirty, 'data-focus-key': 'finish-save' }))))
-    return node('div', { class: 'step-body' }, card, stepNav(profile, 'voices', null))
+    return node('div', { class: 'step-body' }, card)
   }
 
   async function persist() {
@@ -498,12 +502,17 @@ export function mountManager(surface) {
     } else {
       if (!STEPS.includes(step)) step = defaultStep(profile)
       const current = state.activeId === profile.id
+      const isReferral = REFERRAL_PROTOCOLS.has(profile.protocol)
+      const keyLink = API_KEY_LINKS[profile.protocol] ? node('a', {
+        class: 'api-key-link', href: API_KEY_LINKS[profile.protocol], target: '_blank', rel: 'noopener noreferrer', 'data-focus-key': 'get-api-key',
+        title: t(isReferral ? 'referralLinkHint' : profile.protocol === 'openai' ? 'openaiKeyLinkHint' : 'apiKeyLinkHint', { provider: protocolName(profile.protocol) }),
+      }, t(profile.protocol === 'tencent' ? 'getCloudKeys' : 'getApiKey'), ...(isReferral ? [node('span', { class: 'referral-label' }, t('referralLabel'))] : [])) : null
       const header = node('div', { class: 'profile-heading' }, node('div', {}, node('h2', { id: 'profile-name' }, profile.name || t('unnamed')),
-        node('p', { class: 'profile-context' }, t(current ? 'editingCurrent' : 'editingOther'))))
+        node('p', { class: 'profile-context' }, t(current ? 'editingCurrent' : 'editingOther'))), stepNav(profile))
       const stepItems = STEPS.map(id => ({ id, name: stepLabel(id), done: stepDone(profile, id), current: step === id }))
       const bar = stepper(stepItems, id => goStep(profile, id), t('stepProgress'), busy)
       const content = step === 'connect' ? connectionStep(profile) : step === 'models' ? catalogStep(profile, 'models') : step === 'voices' ? catalogStep(profile, 'voices') : finishStep(profile)
-      $('editor').replaceChildren(header, bar, content)
+      $('editor').replaceChildren(header, ...(keyLink ? [keyLink] : []), bar, content)
     }
     toolbar()
     if ($('catalog-list')) $('catalog-list').scrollTop = scrollTop
@@ -519,7 +528,6 @@ export function mountManager(surface) {
       profile.id = crypto.randomUUID(); state.profiles.push(profile); selected = profile.id; step = 'connect'; stepByProfile.set(profile.id, step)
       if (!state.activeId) state.activeId = profile.id
       modelSearch = ''; voiceSearch = ''; modelLimit = 40; voiceLimit = 40; deleteId = null; profileSearch = ''; probeResults = null; $('provider-search').value = ''
-      $('templates').hidden = true; $('add').setAttribute('aria-expanded', 'false')
       changed()
     }, 'adding')
   }
@@ -534,11 +542,28 @@ export function mountManager(surface) {
     if (state.takeoverEnabled && !state.activeId) state.activeId = selected || state.profiles[0]?.id || ''
     changed(); render()
   }
-  $('add').onclick = () => {
-    $('templates').hidden = !$('templates').hidden
-    $('add').setAttribute('aria-expanded', String(!$('templates').hidden))
+  const templates = $('templates')
+  function positionTemplates() {
+    const anchor = $('add').getBoundingClientRect()
+    const width = Math.min(420, window.innerWidth - 24)
+    const height = Math.min(360, window.innerHeight - 24)
+    const below = window.innerHeight - anchor.bottom - 12
+    Object.assign(templates.style, { width: `${width}px`, maxHeight: `${height}px`,
+      left: `${Math.max(12, Math.min(anchor.left, window.innerWidth - width - 12))}px`,
+      top: `${below >= Math.min(260, anchor.top - 12) ? anchor.bottom + 6 : Math.max(12, anchor.top - Math.min(templates.scrollHeight, height) - 6)}px` })
   }
-  for (const template of surface.querySelectorAll('[data-protocol]')) template.onclick = () => addProfile(template.dataset.protocol)
+  $('add').onclick = () => {
+    if (templates.matches(':popover-open')) templates.hidePopover()
+    else { templates.showPopover(); positionTemplates(); templates.querySelector('button')?.focus({ preventScroll: true }) }
+  }
+  templates.addEventListener('toggle', event => { $('add').setAttribute('aria-expanded', String(event.newState === 'open')) }, { signal })
+  window.addEventListener('resize', () => { if (templates.matches(':popover-open')) positionTemplates() }, { signal })
+  window.addEventListener('scroll', event => { if (templates.matches(':popover-open') && !event.composedPath().includes(templates)) positionTemplates() }, { capture: true, passive: true, signal })
+  for (const template of surface.querySelectorAll('[data-protocol]')) template.onclick = () => {
+    templates.hidePopover()
+    $('add').focus({ preventScroll: true })
+    addProfile(template.dataset.protocol)
+  }
   $('language').onchange = event => {
     language = event.target.value; localStorage.setItem('dsh-speech-adapter-language', language)
     loadWords().then(() => { message(); render() }).catch(() => {})
@@ -563,5 +588,5 @@ export function mountManager(surface) {
     catch (error) { message(`${t('failed')} ${t(error.message)}`, true) }
     finally { busy = false; render() }
   })()
-  return () => { controller.abort() }
+  return () => { if (templates.matches(':popover-open')) templates.hidePopover(); controller.abort() }
 }

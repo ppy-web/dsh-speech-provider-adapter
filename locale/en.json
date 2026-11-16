@@ -17,6 +17,8 @@
   "baseHint": "Use a service root or a URL ending in /v1, without the synthesis endpoint.",
   "apiKey": "API Key",
   "getApiKey": "Get API key",
+  "referralLabel": "Referral link · Project may earn rewards",
+  "referralLinkHint": "Open the {provider} referral link to register and obtain credentials. This project may receive a referral reward.",
   "getCloudKeys": "Get cloud API credentials",
   "apiKeyLinkHint": "Open {provider} official key management in a new window",
   "openaiKeyLinkHint": "Open OpenAI official key management in a new window. For other compatible services, get a key from the service's own platform.",
@@ -86,7 +88,7 @@
   "meta": {
     "title": "供应商适配器",
     "description": "Manage speech providers, protocols, models, voices and takeover for 音色工坊",
-    "detail": "usage.md"
+    "detail": "intro.md"
   },
   "takeoverSwitch": "Enable takeover",
   "upToDate": "All changes saved",

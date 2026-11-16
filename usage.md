@@ -10,13 +10,15 @@
 
 音色工坊 开启「播报台 → 更多 → 宿主适配 → 接收外部供应商」（默认开启）时，点击顶部供应商卡片可循环切换本适配器保存的供应商，立即持久化当前选择并停止旧任务；只有一套配置时不切换。关闭接收并保存后使用内置供应商，重新开启后恢复接管，无需重新注册适配器。密钥、地址和供应商列表仍在本适配器管理。
 
-管理入口：DSH 插件管理 → 供应商适配器 → 配置，表单直接显示在宿主内部。接管后，音色工坊密钥区域的“管理供应商”也通过 DSH 内部导航打开该配置区，不新建标签页。表单提供中文、English 和系统深浅主题；`/plugins/speech-provider-adapter` 保留为可选直达地址。
+管理入口：DSH 插件管理 → 供应商适配器 → 配置，表单直接显示在宿主内部。接管后，音色工坊密钥区域的“管理供应商”也通过 DSH 内部导航打开该配置区，不新建标签页。表单提供中文和 English，嵌入时跟随 DSH 深浅主题，独立页面跟随系统主题；`/plugins/speech-provider-adapter` 保留为可选直达地址。
 
-连接步骤提供官方密钥创建或管理入口；腾讯云使用 SecretId / SecretKey。Fish Audio 登录后可在开发者入门页获取 API Key。OpenAI 兼容协议指向 OpenAI 官方平台；其他兼容服务请前往对应平台。百炼入口默认北京地域，其他地域请在控制台切换。
+保存、查询和错误结果以窗口顶部提示显示，滚动设置页时仍可看到；嵌入宿主时提示会自动消失。
 
-页面按“连接供应商 → 配置模型列表 → 配置音色列表 → 保存与接管”四步条组织，可点击步骤条切换且保留未保存的配置。连接步骤提供测试连接与“拉取模型与音色”，模型和音色步骤从供应商接口拉取目录（按 ID 去重追加、不覆盖已修改的条目），也可手动添加和修改自定义条目，并支持按名称或 ID 搜索。每个列表用单选项标记当前使用的模型/音色，密钥框可临时显示或隐藏当前输入。顶部保存栏在滚动时保留；左侧提供全局“接管语音合成”按钮（统一控制所有供应商，点击后按钮底色变化示意开启/关闭），设为当前供应商以及表单编辑都在“保存与接管”步骤确认并在保存后生效。
+页面提供供应商注册与获取密钥入口，切换配置步骤时保持可见；腾讯云使用 SecretId / SecretKey。OpenAI 兼容协议指向 OpenAI 官方平台；其他兼容服务请前往对应平台。百炼密钥需要与业务空间地域一致。
 
-宽设置区左侧列出供应商并支持搜索，窄设置区改用下拉选择，正在编辑的配置与实际生效的供应商分别标识。模型与音色分列在各自的步骤中，支持按名称或 ID 搜索，长列表通过“显示更多”继续加载；模型能力与音色适用范围按需展开。流式、单次文本上限、语音指令与删除配置位于“保存与接管”步骤，目录筛选不会修改保存的条目。
+页面按“连接供应商 → 配置模型列表 → 配置音色列表 → 保存与接管”四步条组织，可点击步骤条或标题旁的上一步、下一步切换，未保存的配置会保留。连接步骤提供测试连接与“拉取模型与音色”，模型和音色步骤从供应商接口拉取目录（按 ID 去重追加、不覆盖已修改的条目），也可手动添加和修改自定义条目，并支持按名称或 ID 搜索。每个列表用单选项标记当前使用的模型/音色，密钥框可临时显示或隐藏当前输入。顶部保存栏在滚动时保留；左侧提供全局“接管语音合成”按钮（统一控制所有供应商，点击后按钮底色变化示意开启/关闭），设为当前供应商以及表单编辑都在“保存与接管”步骤确认并在保存后生效。
+
+宽设置区左侧列出供应商并支持搜索，供应商较多时可在列表内滚动；点击“新增”会弹出协议选项。窄设置区改用下拉选择，正在编辑的配置与实际生效的供应商分别标识。模型与音色分列在各自的步骤中，支持按名称或 ID 搜索，长列表通过“显示更多”继续加载；模型能力与音色适用范围按需展开。流式、单次文本上限、语音指令与删除配置位于“保存与接管”步骤，目录筛选不会修改保存的条目。
 
 界面仅参考 shadcn/ui 的组件风格，仍使用原生 HTML、CSS 和 JavaScript。未引入 shadcn、Tailwind 或页面框架依赖，也不需要额外的前端构建。
 
@@ -43,18 +45,18 @@ dsh plugin --profile web add dsh-speech-provider-adapter@latest
 
 ## 服务商预设
 
-“新增”中包含 SenseAudio（商汤）、OpenAI compatible（OpenAI 兼容）、MiniMax（稀宇科技）、SiliconFlow（硅基流动）、ElevenLabs、Fish Audio、Alibaba Cloud Bailian（阿里云百炼）、Tencent Cloud（腾讯云），以及音色工坊内置的 Xiaomi MiMo TTS（小米）、豆包 Seed TTS（火山引擎）、Breeze Blue TTS 和完全自定义本地模型（Custom local model）。预设只建立草稿，不会开启接管、写入密钥或调用付费合成。以下新增预设按官方接口文档整理，未使用真实账号实测；模型、音色与账号权限以供应商当前服务为准。中文备注用于协议选项和新建预设名称，已有配置名称保持用户保存的值。
+“新增”中包含 SenseAudio（商汤）、OpenAI compatible（OpenAI 兼容）、MiniMax（稀宇科技）、SiliconFlow（硅基流动）、ElevenLabs、Fish Audio、Alibaba Cloud Bailian（阿里云百炼）、Tencent Cloud（腾讯云）、DeepSeek TTS，以及 Xiaomi MiMo TTS（小米）、豆包 Seed TTS（火山引擎）、Breeze Blue TTS 和完全自定义本地模型（Custom local model）。预设只建立草稿，不会开启接管、写入密钥或调用付费合成。以下新增预设按官方接口文档整理，未使用真实账号实测；模型、音色与账号权限以供应商当前服务为准。中文备注用于协议选项和新建预设名称，已有配置名称保持用户保存的值。
 
 | 服务商 | 协议与默认配置 | 使用差异与官方参考 |
 | --- | --- | --- |
-| SiliconFlow（硅基流动） | OpenAI 风格的专用适配；CosyVoice2 0.5B，8 个系统音色 | 音色 ID 带模型前缀并限定适用模型；PCM 显式请求 24000 Hz，HTTP 流式发送 stream；CosyVoice2 指令拼入 input 的 endofprompt 前缀。[合成接口](https://docs.siliconflow.cn/docs/api/audio-speech-post)、[音色与格式](https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech) |
-| ElevenLabs | 原生协议；Multilingual v2 / Flash v2.5，George 示例音色 | 使用 xi-api-key；合成及 HTTP 流式指定 pcm_24000 或 MP3；模型与账号音色分别查询，音色读取跟随 v2 分页。[合成](https://elevenlabs.io/docs/api-reference/text-to-speech/convert)、[流式](https://elevenlabs.io/docs/api-reference/text-to-speech/stream)、[音色目录](https://elevenlabs.io/docs/api-reference/voices/search) |
-| Fish Audio | 原生协议；S2.1 Pro、S2.1 Pro Free、S2 Pro、S1，音色初始为空 | 合成模型放在 model 请求头，音色对应 reference_id。刷新读取自己工作区的音色；公共音色或其他可用参考 ID 可手动加入。不会将声音模型目录误当合成模型，也不填写虚构 ID。[合成](https://docs.fish.audio/api-reference/endpoint/openapi-v1/text-to-speech)、[音色目录](https://docs.fish.audio/api-reference/endpoint/model/list-models) |
-| Alibaba Cloud Bailian（阿里云百炼） | 原生 Qwen-Audio-TTS HTTP；Qwen-Audio 3.0 / 3.1 Flash / Plus，按模型绑定示例音色 | Bearer API Key；业务空间域名，SSE Base64 音频；24 kHz PCM 封装 WAV 或拼接 MP3，支持流式和 input.instruction。预设或手动目录，不伪造连接成功。[合成接口](https://help.aliyun.com/zh/model-studio/qwen-audio-tts-http-api)、[音色列表](https://help.aliyun.com/zh/model-studio/qwen-audio-tts-voice-list) |
-| Tencent Cloud（腾讯云） | 原生 TextToVoice API 3.0；固定基础合成接口，智瑜、智云、智斌、智兰示例音色 | SecretId / SecretKey，TC3-HMAC-SHA256；直接返回上游 16 kHz WAV / MP3。当前仅完整音频，无独立语音指令，保守限制每段 150 字。预设或手动目录。[合成接口](https://cloud.tencent.com/document/api/1073/37995)、[签名方法](https://cloud.tencent.com/document/api/213/30654)、[音色列表](https://cloud.tencent.com/document/product/1073/92668) |
-| Xiaomi MiMo TTS（小米） | OpenAI 兼容 chat/completions；MiMo v2.5 TTS，内置 8 个音色 | Bearer API Key（`sk-`，`tp-` 自动改用 token-plan 地址）；messages 携带语音指令、audio.voice 选音色；完整 WAV/MP3 与 SSE PCM16 流式。预设目录。[音色工坊文档](https://ppy-web.github.io/dsh-plugin-xiaomi-mimo-tts/) |
+| SiliconFlow（硅基流动） | OpenAI 风格的专用适配；CosyVoice2 0.5B，8 个系统音色 | 音色 ID 带模型前缀并限定适用模型；PCM 显式请求 24000 Hz，HTTP 流式发送 stream；CosyVoice2 指令拼入 input 的 endofprompt 前缀。[注册与获取密钥](https://cloud.siliconflow.cn/i/DhJESocy) |
+| ElevenLabs | 原生协议；Multilingual v2 / Flash v2.5，George 示例音色 | 使用 xi-api-key；合成及 HTTP 流式指定 pcm_24000 或 MP3；模型与账号音色分别查询，音色读取跟随 v2 分页。[注册与获取密钥](https://try.elevenlabs.io/ongth4qh6gaw) |
+| Fish Audio | 原生协议；S2.1 Pro、S2.1 Pro Free、S2 Pro、S1，音色初始为空 | 合成模型放在 model 请求头，音色对应 reference_id。刷新读取自己工作区的音色；公共音色或其他可用参考 ID 可手动加入。[注册与获取密钥](https://fish.audio/?aff=EYEI4TKZPE26I) |
+| Alibaba Cloud Bailian（阿里云百炼） | 原生 Qwen-Audio-TTS HTTP；Qwen-Audio 3.0 / 3.1 Flash / Plus，按模型绑定示例音色 | Bearer API Key；业务空间域名，SSE Base64 音频；24 kHz PCM 封装 WAV 或拼接 MP3，支持流式和 input.instruction。预设或手动目录。[注册与获取密钥](https://www.aliyun.com/minisite/goods?userCode=h229osnq) |
+| Tencent Cloud（腾讯云） | 原生 TextToVoice API 3.0；固定基础合成接口，智瑜、智云、智斌、智兰示例音色 | SecretId / SecretKey，TC3-HMAC-SHA256；直接返回上游 16 kHz WAV / MP3。当前仅完整音频，无独立语音指令，保守限制每段 150 字。预设或手动目录。[注册与获取密钥](https://curl.qcloud.com/xmLaElOV) |
+| Xiaomi MiMo TTS（小米） | OpenAI 兼容 chat/completions；MiMo v2.5 TTS，内置 8 个音色 | Bearer API Key（`sk-`，`tp-` 自动改用 token-plan 地址）；messages 携带语音指令、audio.voice 选音色；完整 WAV/MP3 与 SSE PCM16 流式。预设目录。[注册与获取密钥](https://platform.xiaomimimo.com?ref=GQDDDU) |
 | 豆包 Seed TTS（火山引擎） | WebSocket 双向流；seed-tts-2.0 / seed-icl-2.0，30 个精选音色 | `X-Api-Key` 与 `X-Api-Resource-Id=模型`；`ark-` 密钥自动改用 agent-plan 地址；返回 24 kHz PCM16，可完整音频或流式；seed-icl 为复刻音色、不支持语音指令。[音色列表](https://docs.volcengine.com/docs/DoubaoVoice/Tonelist-1?lang=zh) |
-| Breeze Blue TTS | 原生 HTTP 二进制；固定 breeze-tts-2，30 个预设音色 | `xi-api-key`；`/text-to-speech/{voice}` 返回 WAV/MP3，`/stream` 返回 PCM；单次上限 1000 字。[音色库](https://breezeblue.ai/zh/voice-library) |
+| Breeze Blue TTS | 原生 HTTP 二进制；固定 breeze-tts-2，30 个预设音色 | `xi-api-key`；`/text-to-speech/{voice}` 返回 WAV/MP3，`/stream` 返回 PCM；单次上限 1000 字。[注册与获取密钥](https://breezeblue.ai/zh?code=JHKLSJ) |
 | 自定义本地模型（Custom local model） | 原生 HTTP；默认 OpenAI 风格 `POST {BaseURL}/audio/speech`，返回二进制音频 | 仅需本地 Base URL，API Key 可选；请求方法、路径、请求头、JSON 请求体模板、取音方式与音频格式均在“高级选项”中自定义；手动目录，测试连接与刷新不可用。 |
 
 ### 阿里云百炼

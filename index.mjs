@@ -1,5 +1,6 @@
 import z from '@deepseek-ai/schemastery'
 import { readFile } from 'node:fs/promises'
+import { createHash } from 'node:crypto'
 import { dirname, resolve } from 'node:path'
 import { TtsProviderError } from './host-api.mjs'
 import { AdapterStore, catalog, normalizeConfig, validateSelection } from './store.mjs'
@@ -99,15 +100,21 @@ export async function apply(ctx, config) {
   const publicState = () => ({ ...store.publicState(), takeoverActive: unregister !== null, ready: unregister !== null && provider.getSnapshot().ready, takeoverError })
   const files = new Map([['', ['index.html', 'text/html; charset=utf-8']], ['/app.js', ['app.js', 'text/javascript; charset=utf-8']], ['/api.js', ['api.js', 'text/javascript; charset=utf-8']], ['/components.js', ['components.js', 'text/javascript; charset=utf-8']], ['/standalone.js', ['standalone.js', 'text/javascript; charset=utf-8']], ['/style.css', ['style.css', 'text/css; charset=utf-8']],
     ['/locale/zh.json', ['../locale/zh.json', 'application/json; charset=utf-8']], ['/locale/en.json', ['../locale/en.json', 'application/json; charset=utf-8']]])
-  for (const [suffix, [file, type]] of files) {
-    const data = await readFile(new URL(`./ui/${file}`, import.meta.url))
+  const resources = await Promise.all([...files].map(async ([suffix, [file, type]]) => ({
+    suffix, type, data: await readFile(new URL(`./ui/${file}`, import.meta.url)),
+  })))
+  const revision = createHash('sha256')
+  for (const { suffix, data } of resources) revision.update(suffix).update(data)
+  const uiRevision = revision.digest('hex').slice(0, 16)
+  for (const { suffix, type, data } of resources) {
+    const body = suffix === '' ? data.toString('utf8').replace('</head>', `  <meta name="adapter-ui-revision" content="${uiRevision}">\n</head>`) : data
     ctx.effect(() => ctx.webServer.register({ kind: 'exact', path: ROOT + suffix, handler(req, res) {
       if (!sameOrigin(req)) { reply(res, 403, { error: 'cross-origin-denied' }); return }
       if (req.method !== 'GET') { reply(res, 405, { error: 'method-not-allowed' }); return }
       res.setHeader('content-type', type); res.setHeader('cache-control', 'no-store')
       res.setHeader('x-content-type-options', 'nosniff')
       res.setHeader('content-security-policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'none'; form-action 'self'")
-      res.end(data)
+      res.end(body)
     } }))
   }
   for (const action of ['state', 'save', 'refresh', 'test', 'preset', 'probe']) ctx.effect(() => ctx.webServer.register({

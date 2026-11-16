@@ -17,6 +17,8 @@
   "baseHint": "填写服务根地址或以 /v1 结尾的地址；无需填写合成接口路径。",
   "apiKey": "API Key",
   "getApiKey": "去获取 API Key",
+  "referralLabel": "推荐链接",
+  "referralLinkHint": "打开 {provider} 推荐链接，注册后可前往平台获取密钥；",
   "getCloudKeys": "去获取云 API 密钥",
   "apiKeyLinkHint": "在新窗口打开 {provider} 官方密钥管理",
   "openaiKeyLinkHint": "在新窗口打开 OpenAI 官方密钥管理；其他兼容服务请前往对应平台获取密钥。",
@@ -86,7 +88,7 @@
   "meta": {
     "title": "供应商适配器",
     "description": "为音色工坊管理语音供应商、接口协议、模型、音色及接管开关",
-    "detail": "usage.md"
+    "detail": "intro.md"
   },
   "takeoverSwitch": "启用接管",
   "upToDate": "所有更改已保存",

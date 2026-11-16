@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="300" viewBox="0 0 640 300" role="img" aria-labelledby="title desc" font-family="'Segoe UI', 'Microsoft YaHei', 'PingFang SC', 'Noto Sans SC', sans-serif">
+  <title id="title">连接更多语音服务</title>
+  <desc id="desc">多种语音供应商与本地模型连接到音色工坊，统一管理协议、模型和音色。</desc>
+  <defs><radialGradient id="glow"><stop stop-color="#E1E8FF" stop-opacity=".85"/><stop offset="1" stop-color="#E1E8FF" stop-opacity="0"/></radialGradient></defs>
+  <rect width="640" height="300" fill="#F5F6FC"/>
+  <circle cx="628" cy="6" r="170" fill="url(#glow)"/>
+  <text x="32" y="62" font-size="30" font-weight="700" fill="#16213D">连接更多语音服务</text>
+  <text x="32" y="90" font-size="13" fill="#66738F">为音色工坊集中管理第三方与本地语音供应商</text>
+  <rect x="32" y="111" width="400" height="164" rx="14" fill="#1F2A44" opacity=".06"/>
+  <rect x="448" y="111" width="160" height="164" rx="14" fill="#1F2A44" opacity=".06"/>
+  <rect x="32" y="108" width="400" height="164" rx="14" fill="#FFF" stroke="#E1E6F3"/>
+  <text x="48" y="136" font-size="14" font-weight="700" fill="#1F2A44">语音供应商</text>
+  <rect x="328" y="120" width="88" height="24" rx="6" fill="#EDF0FF"/>
+  <text x="372" y="136" text-anchor="middle" font-size="11" fill="#5266E0">接管语音合成</text>
+  <path d="M33 148H431" stroke="#EDF0F8"/>
+  <text x="48" y="169" font-size="12" fill="#66738F">选择语音来源</text>
+  <g fill="none" stroke-width="1.5" stroke-linecap="round">
+    <path d="M138 197H246Q260 197 268 210" stroke="#8FA7FF"/>
+    <path d="M238 197H246Q260 197 268 210" stroke="#ECAF84"/>
+    <path d="M138 231H246Q260 231 268 218" stroke="#67C9B5"/>
+    <path d="M238 231H246Q260 231 268 218" stroke="#C1A0E9"/>
+    <path d="M292 214H312" stroke="#8894C7"/>
+  </g>
+  <rect x="48" y="184" width="90" height="26" rx="8" fill="#EAF0FF"/>
+  <rect x="148" y="184" width="90" height="26" rx="8" fill="#FFF0E7"/>
+  <rect x="48" y="218" width="90" height="26" rx="8" fill="#E3F8F1"/>
+  <rect x="148" y="218" width="90" height="26" rx="8" fill="#F2EAFC"/>
+  <g font-size="11" font-weight="600" text-anchor="middle">
+    <text x="93" y="201" fill="#3157B7">DeepSeek</text>
+    <text x="193" y="201" fill="#B65721">小米 MiMo</text>
+    <text x="93" y="235" fill="#167D69">Breeze Blue</text>
+    <text x="193" y="235" fill="#7950A8">本地模型</text>
+  </g>
+  <circle cx="280" cy="214" r="13" fill="#EDF0FF" stroke="#D2D9FA"/>
+  <path d="M275 214h10m-5-5v10" fill="none" stroke="#536DFE" stroke-width="1.5" stroke-linecap="round"/>
+  <text x="320" y="211" font-size="13" font-weight="700" fill="#1F2A44">音色工坊</text>
+  <text x="320" y="230" font-size="11" fill="#66738F">自由切换</text>
+  <text x="48" y="262" font-size="11" fill="#8490AA">更多供应商 · 自定义协议</text>
+  <rect x="448" y="108" width="160" height="164" rx="14" fill="#FFF" stroke="#E1E6F3"/>
+  <text x="464" y="136" font-size="14" font-weight="700" fill="#1F2A44">统一管理</text>
+  <g font-size="12" fill="#45527A"><text x="490" y="172">多供应商配置</text><text x="490" y="200">模型与音色</text><text x="490" y="228">流式播放</text><text x="490" y="256">本地模型接入</text></g>
+  <g fill="#EDF0FF"><rect x="464" y="160" width="16" height="16" rx="5"/><rect x="464" y="188" width="16" height="16" rx="5"/><rect x="464" y="216" width="16" height="16" rx="5"/><rect x="464" y="244" width="16" height="16" rx="5"/></g>
+  <g fill="none" stroke="#536DFE" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M468 168l2.5 2.5 5-5"/><path d="M468 196l2.5 2.5 5-5"/><path d="M468 224l2.5 2.5 5-5"/><path d="M468 252l2.5 2.5 5-5"/></g>
+</svg>
